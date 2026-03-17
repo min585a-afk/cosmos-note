@@ -1,0 +1,47 @@
+/* ===== Reset & Base ===== */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg-primary: #08090d;
+  --bg-secondary: #0d0f16;
+  --bg-card: rgba(15, 18, 30, 0.85);
+  --bg-card-hover: rgba(20, 24, 40, 0.95);
+  --border: rgba(100, 120, 200, 0.12);
+  --border-active: rgba(120, 140, 255, 0.3);
+  --text-primary: #e8eaf0;
+  --text-secondary: #8b90a5;
+  --text-muted: #555a70;
+  --accent: #7c6aff;
+  --accent-glow: rgba(124, 106, 255, 0.25);
+  --accent-secondary: #4ecaff;
+  --accent-tertiary: #ff6eb4;
+  --node-work: #7c6aff;
+  --node-personal: #4ecaff;
+  --node-task: #ff6eb4;
+  --node-idea: #50e3a4;
+  --sidebar-width: 260px;
+  --header-height: 56px;
+  --sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+}
