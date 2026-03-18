@@ -390,6 +390,57 @@
   white-space: nowrap; flex-shrink: 0;
 }
 
+/* ===== Node Creator ===== */
+.node-creator {
+  animation: tooltipIn 150ms ease-out;
+}
+
+.node-creator__form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-active);
+  background: rgba(12, 14, 24, 0.95);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(124, 106, 255, 0.15);
+  min-width: 320px;
+}
+
+.node-creator__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--node-idea);
+  box-shadow: 0 0 8px var(--node-idea);
+  flex-shrink: 0;
+}
+
+.node-creator__input {
+  flex: 1;
+  border: none;
+  background: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: var(--sans);
+}
+
+.node-creator__input::placeholder {
+  color: var(--text-muted);
+}
+
+.node-creator__hint {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
 /* ===== Scrollbar ===== */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

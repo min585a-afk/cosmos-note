@@ -34,6 +34,8 @@ export function useCanvasInteraction(
   }, [canvasRef, state.viewport])
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
+    // Don't interfere with creating-node mode
+    if (interactionRef.current.type === 'creating-node') return
     const pos = getCanvasPos(e)
     const nodes = nodesRef.current ?? state.nodes
     const cvp = getCenteredVp()
@@ -171,21 +173,24 @@ export function useCanvasInteraction(
       dispatch({ type: 'SET_SELECTED', nodeId: hit.id })
     } else {
       const world = screenToWorld(pos.x, pos.y, cvp)
-      const newNode = createNode({
-        label: 'New Note',
-        type: 'idea',
-        x: world.x,
-        y: world.y,
-        description: '',
+      // Open node creator input at click position
+      dispatch({
+        type: 'SET_INTERACTION',
+        interaction: {
+          type: 'creating-node',
+          worldX: world.x,
+          worldY: world.y,
+          screenX: pos.x,
+          screenY: pos.y,
+        },
       })
-      dispatch({ type: 'ADD_NODE', node: newNode })
-      dispatch({ type: 'SET_SELECTED', nodeId: newNode.id })
-      reheat(0.5)
     }
-  }, [dispatch, getCanvasPos, getCenteredVp, nodesRef, reheat, state.nodes, state.viewport])
+  }, [dispatch, getCanvasPos, getCenteredVp, nodesRef, state.nodes, state.viewport])
 
   const onClick = useCallback((e: React.MouseEvent) => {
     if (e.detail > 1) return
+    // Don't interfere with creating-node mode
+    if (interactionRef.current.type === 'creating-node') return
     const pos = getCanvasPos(e)
     const nodes = nodesRef.current ?? state.nodes
     const cvp = getCenteredVp()

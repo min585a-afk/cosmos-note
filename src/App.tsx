@@ -7,6 +7,7 @@ import { StatusBar } from './components/StatusBar'
 import { GraphCanvas } from './canvas/GraphCanvas'
 import { NodeTooltip } from './components/NodeTooltip'
 import { BranchInput } from './components/BranchInput'
+import { NodeCreator } from './components/NodeCreator'
 import './App.css'
 
 function AppContent() {
@@ -39,6 +40,7 @@ function AppContent() {
           <GraphCanvas reheatRef={reheatRef} />
           <NodeTooltip containerWidth={size.w} containerHeight={size.h} />
           <BranchInput containerWidth={size.w} containerHeight={size.h} onReheat={handleReheat} />
+          <NodeCreator onReheat={handleReheat} />
         </div>
         <StatusBar />
       </main>

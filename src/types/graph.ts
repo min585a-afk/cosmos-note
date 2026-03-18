@@ -34,6 +34,7 @@ export type InteractionMode =
   | { type: 'dragging-node'; nodeId: string; offsetX: number; offsetY: number }
   | { type: 'panning'; startX: number; startY: number; startVpX: number; startVpY: number }
   | { type: 'creating-edge'; sourceId: string; currentX: number; currentY: number }
+  | { type: 'creating-node'; worldX: number; worldY: number; screenX: number; screenY: number }
 
 export interface GraphState {
   nodes: GraphNode[]
