@@ -2037,7 +2037,7 @@
 .flow-chain {
   display: flex;
   align-items: flex-start;
-  gap: 0;
+  gap: 8px;
   min-width: fit-content;
 }
 
@@ -2047,11 +2047,16 @@
   align-items: center;
   gap: 8px;
   position: relative;
+  padding-left: 36px;
+}
+
+.flow-column:first-child {
+  padding-left: 0;
 }
 
 .flow-arrow {
   position: absolute;
-  left: -32px;
+  left: 0;
   top: 18px;
 }
 
@@ -2192,7 +2197,7 @@
 .flow-add-node:hover { border-color: var(--accent); color: var(--accent); }
 .flow-add-node span:first-child { font-size: 20px; }
 
-.flow-node-input { width: 150px; margin-left: 32px; }
+.flow-node-input { width: 150px; }
 .flow-node-input__field {
   width: 100%;
   padding: 10px 12px;

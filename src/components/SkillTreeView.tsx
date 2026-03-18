@@ -346,7 +346,7 @@ export function SkillTreeView() {
               progress = `${done}/${main.length} 단계`
             }
             return (
-              <button key={item.id} className={`skilltree-sidebar__item ${isActive ? 'skilltree-sidebar__item--active' : ''}`}
+              <div key={item.id} className={`skilltree-sidebar__item ${isActive ? 'skilltree-sidebar__item--active' : ''}`}
                 onClick={() => { if (tab === 'analysis') dispatch({ type: 'SET_ACTIVE_TREE', treeId: item.id }); else dispatch({ type: 'SET_ACTIVE_FLOW_TREE', treeId: item.id }) }}>
                 <span className="skilltree-sidebar__item-icon">{tab === 'analysis' ? '🔬' : '🔗'}</span>
                 <div className="skilltree-sidebar__item-info">
@@ -354,7 +354,7 @@ export function SkillTreeView() {
                   <span className="skilltree-sidebar__item-progress">{progress}</span>
                 </div>
                 <button className="skilltree-sidebar__item-delete" onClick={e => { e.stopPropagation(); if (tab === 'analysis') dispatch({ type: 'DELETE_TREE', treeId: item.id }); else dispatch({ type: 'DELETE_FLOW_TREE', treeId: item.id }) }}>×</button>
-              </button>
+              </div>
             )
           })}
         </div>
