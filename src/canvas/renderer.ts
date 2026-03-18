@@ -32,7 +32,7 @@ export function drawEdge(
   ctx.beginPath()
   ctx.moveTo(source.x, source.y)
   ctx.lineTo(target.x, target.y)
-  ctx.strokeStyle = 'rgba(167, 139, 250, 0.12)'
+  ctx.strokeStyle = 'rgba(191, 90, 242, 0.15)'
   ctx.lineWidth = 1
   ctx.stroke()
 }
@@ -72,10 +72,10 @@ export function drawNode(
   const idHash = node.id.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)
   const glowVariation = 0.4 + (Math.abs(idHash % 100) / 100) * 0.6  // 0.4 ~ 1.0
 
-  // Glow - stronger for search matches, varied per node
-  const baseGlowR = isHovered ? r + 16 : isSelected ? r + 14 : isSearchMatch ? r + 18 : r + 8
+  // Neon glow - stronger for search matches, varied per node
+  const baseGlowR = isHovered ? r + 20 : isSelected ? r + 18 : isSearchMatch ? r + 22 : r + 12
   const glowR = baseGlowR * glowVariation + baseGlowR * 0.3
-  const baseAlpha = isSearchMatch ? 0x55 : 0x40
+  const baseAlpha = isSearchMatch ? 0x70 : 0x5a
   const glowAlphaNum = Math.round(baseAlpha * glowVariation)
   const glowAlpha = glowAlphaNum.toString(16).padStart(2, '0')
   const glow = ctx.createRadialGradient(x, y, r, x, y, glowR)

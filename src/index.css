@@ -19,10 +19,10 @@
   --accent-glow: rgba(167, 139, 250, 0.25);
   --accent-secondary: #38bdf8;
   --accent-tertiary: #fb7185;
-  --node-work: #a78bfa;
-  --node-personal: #38bdf8;
-  --node-task: #fb7185;
-  --node-idea: #34d399;
+  --node-work: #bf5af2;
+  --node-personal: #00e5ff;
+  --node-task: #ff2d55;
+  --node-idea: #00ff87;
   --sidebar-width: 260px;
   --header-height: 56px;
   --sans: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;

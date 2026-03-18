@@ -66,8 +66,8 @@ export type GraphAction =
   | { type: 'SET_SEARCH'; query: string }
 
 export const NODE_COLORS: Record<NodeType, string> = {
-  work: '#a78bfa',
-  personal: '#38bdf8',
-  task: '#fb7185',
-  idea: '#34d399',
+  work: '#bf5af2',
+  personal: '#00e5ff',
+  task: '#ff2d55',
+  idea: '#00ff87',
 }
