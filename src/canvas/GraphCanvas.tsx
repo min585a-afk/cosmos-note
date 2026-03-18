@@ -4,7 +4,7 @@ import { useSimulation } from '../hooks/useSimulation'
 import { useCanvasInteraction } from '../hooks/useCanvasInteraction'
 import { drawGrid, drawEdge, drawNode, drawLabel, drawDraftEdge } from './renderer'
 
-export function GraphCanvas({ reheatRef }: { reheatRef?: MutableRefObject<(() => void) | null> }) {
+export function GraphCanvas({ reheatRef, onOpenNote }: { reheatRef?: MutableRefObject<(() => void) | null>; onOpenNote?: (nodeId: string) => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const sizeRef = useRef({ w: 0, h: 0 })
@@ -12,7 +12,7 @@ export function GraphCanvas({ reheatRef }: { reheatRef?: MutableRefObject<(() =>
 
   const state = useGraphState()
   const { nodesRef, reheat } = useSimulation()
-  const interactions = useCanvasInteraction(canvasRef, nodesRef, reheat)
+  const interactions = useCanvasInteraction(canvasRef, nodesRef, reheat, onOpenNote)
 
   // Refs to decouple render loop from React state
   const viewportRef = useRef(state.viewport)

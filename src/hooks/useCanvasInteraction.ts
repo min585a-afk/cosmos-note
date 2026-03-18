@@ -8,7 +8,8 @@ import type { GraphNode, Viewport } from '../types/graph'
 export function useCanvasInteraction(
   canvasRef: React.RefObject<HTMLCanvasElement | null>,
   nodesRef: React.RefObject<GraphNode[]>,
-  reheat: (alpha?: number) => void
+  reheat: (alpha?: number) => void,
+  onOpenNote?: (nodeId: string) => void
 ) {
   const state = useGraphState()
   const dispatch = useGraphDispatch()
@@ -170,7 +171,9 @@ export function useCanvasInteraction(
     const hit = hitTestNode(pos.x, pos.y, nodes, cvp)
 
     if (hit) {
+      // Double click on node → open note view
       dispatch({ type: 'SET_SELECTED', nodeId: hit.id })
+      onOpenNote?.(hit.id)
     } else {
       const world = screenToWorld(pos.x, pos.y, cvp)
       // Open node creator input at click position

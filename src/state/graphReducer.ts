@@ -1,5 +1,6 @@
 import type { GraphState, GraphAction, GraphNode, GraphEdge } from '../types/graph'
 import { NODE_COLORS as COLORS, EMPTY_NODE_COLOR } from '../types/graph'
+import { findAutoLinks } from '../utils/autoLink'
 
 let _idCounter = 0
 export function generateId(): string {
@@ -72,8 +73,16 @@ export function graphReducer(state: GraphState, action: GraphAction): GraphState
       }
     }
 
-    case 'ADD_NODE':
-      return { ...state, nodes: [...state.nodes, action.node] }
+    case 'ADD_NODE': {
+      const newNodes = [...state.nodes, action.node]
+      // Auto-link: find related nodes by keywords/tags/type
+      const autoEdges = findAutoLinks(action.node, state.nodes, state.edges, generateId)
+      return {
+        ...state,
+        nodes: newNodes,
+        edges: [...state.edges, ...autoEdges],
+      }
+    }
 
     case 'REMOVE_NODE':
       return {
@@ -142,19 +151,31 @@ export function graphReducer(state: GraphState, action: GraphAction): GraphState
         ),
       }
 
-    case 'UPDATE_NODE':
-      return {
-        ...state,
-        nodes: state.nodes.map((n) => {
-          if (n.id !== action.nodeId) return n
-          const updated = { ...n, ...action.updates }
-          // Determine color: if description exists → neon, else → gray
-          const desc = (action.updates.description !== undefined ? action.updates.description : n.description).trim()
-          const nodeType = action.updates.type || n.type
-          updated.color = desc ? COLORS[nodeType] : EMPTY_NODE_COLOR
-          return updated
-        }),
+    case 'UPDATE_NODE': {
+      const updatedNodes = state.nodes.map((n) => {
+        if (n.id !== action.nodeId) return n
+        const updated = { ...n, ...action.updates }
+        // Determine color: if description exists → neon, else → gray
+        const desc = (action.updates.description !== undefined ? action.updates.description : n.description).trim()
+        const nodeType = action.updates.type || n.type
+        updated.color = desc ? COLORS[nodeType] : EMPTY_NODE_COLOR
+        return updated
+      })
+
+      // Auto-link when description or tags change
+      let newEdges = state.edges
+      if (action.updates.description !== undefined || action.updates.tags !== undefined) {
+        const updatedNode = updatedNodes.find(n => n.id === action.nodeId)
+        if (updatedNode) {
+          const autoEdges = findAutoLinks(updatedNode, updatedNodes.filter(n => n.id !== action.nodeId), state.edges, generateId)
+          if (autoEdges.length > 0) {
+            newEdges = [...state.edges, ...autoEdges]
+          }
+        }
       }
+
+      return { ...state, nodes: updatedNodes, edges: newEdges }
+    }
 
     case 'SET_SEARCH':
       return { ...state, searchQuery: action.query }

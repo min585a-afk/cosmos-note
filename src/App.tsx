@@ -38,11 +38,15 @@ function AppContent() {
 
   const handleSwitchToGraph = useCallback((nodeId: string) => {
     setView('graph')
-    // Navigate to node in graph after switch
     setTimeout(() => {
       dispatch({ type: 'SET_SELECTED', nodeId })
       reheatRef.current?.()
     }, 100)
+  }, [dispatch])
+
+  const handleOpenNote = useCallback((nodeId: string) => {
+    dispatch({ type: 'SET_SELECTED', nodeId })
+    setView('notes')
   }, [dispatch])
 
   return (
@@ -53,7 +57,7 @@ function AppContent() {
         <Header onReheat={handleReheat} />
         {view === 'graph' ? (
           <div className="canvas-wrapper">
-            <GraphCanvas reheatRef={reheatRef} />
+            <GraphCanvas reheatRef={reheatRef} onOpenNote={handleOpenNote} />
             <NodeTooltip containerWidth={size.w} containerHeight={size.h} onReheat={handleReheat} />
             <BranchInput containerWidth={size.w} containerHeight={size.h} onReheat={handleReheat} />
             <NodeCreator onReheat={handleReheat} />
