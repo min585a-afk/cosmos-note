@@ -18,6 +18,7 @@ export interface SkillTree {
   treeType: 'analysis' | 'skill'
   nodes: SkillNode[]
   createdAt: number
+  exportedToGraph?: boolean
 }
 
 // ===== Flow Skill Tree (스킬트리) — 가로형 노드 체인 =====
@@ -63,6 +64,7 @@ export type SkillTreeAction =
   | { type: 'UNDO_PATH'; treeId: string; nodeId: string }
   | { type: 'COMPLETE_NODE'; treeId: string; nodeId: string }
   | { type: 'UPDATE_SKILL_NODE'; treeId: string; nodeId: string; updates: Partial<Pick<SkillNode, 'label' | 'description'>> }
+  | { type: 'MARK_EXPORTED'; treeId: string }
   | { type: 'LOAD_TREES'; trees: SkillTree[] }
   // Flow skill tree
   | { type: 'CREATE_FLOW_TREE'; name: string }

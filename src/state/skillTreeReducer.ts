@@ -133,6 +133,12 @@ export function skillTreeReducer(state: SkillTreeState, action: SkillTreeAction)
         }),
       }
 
+    case 'MARK_EXPORTED':
+      return {
+        ...state,
+        trees: state.trees.map(t => t.id === action.treeId ? { ...t, exportedToGraph: true } : t),
+      }
+
     case 'LOAD_TREES':
       return { ...state, trees: action.trees }
 

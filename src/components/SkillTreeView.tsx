@@ -3,7 +3,7 @@ import { useSkillTreeState, useSkillTreeDispatch } from '../state/SkillTreeConte
 import { useGraphDispatch } from '../state/GraphContext'
 import { generateSuggestions, generatePathSummary } from '../utils/skillTreeAI'
 import { createNode, generateId } from '../state/graphReducer'
-import type { SkillNode, SkillNodeStatus, FlowNode, FlowNodeStatus } from '../types/skillTree'
+import type { SkillNode, SkillNodeStatus, FlowNodeStatus } from '../types/skillTree'
 
 // ===== Analysis Tree =====
 const NODE_W = 160
@@ -123,8 +123,11 @@ function AnalysisTreeCanvas({ treeId, onExportToGraph }: { treeId: string; onExp
             <button className="analysis-bottom-btn analysis-bottom-btn--complete" onClick={() => dispatch({ type: 'COMPLETE_NODE', treeId, nodeId: activeLeaves[0].id })}>✓ 완료</button>
           </>
         )}
-        {allCompleted && (
+        {allCompleted && !tree.exportedToGraph && (
           <button className="analysis-bottom-btn analysis-bottom-btn--export" onClick={onExportToGraph}>📊 Graph View로 내보내기</button>
+        )}
+        {allCompleted && tree.exportedToGraph && (
+          <span className="analysis-bottom-exported">✓ Graph View에 내보내기 완료</span>
         )}
       </div>
     </div>
@@ -132,14 +135,11 @@ function AnalysisTreeCanvas({ treeId, onExportToGraph }: { treeId: string; onExp
 }
 
 // ===== Flow Skill Tree (가로형) =====
-const FLOW_COLORS: Record<FlowNodeStatus, string> = { 'pending': '#4a4a5a', 'in-progress': '#bf5af2', 'done': '#00ff87' }
-const FLOW_LABELS: Record<FlowNodeStatus, string> = { 'pending': '대기', 'in-progress': '진행중', 'done': '완료' }
-
 function FlowSkillTreeView({ treeId }: { treeId: string }) {
   const state = useSkillTreeState()
   const dispatch = useSkillTreeDispatch()
   const tree = state.flowTrees.find(t => t.id === treeId)
-  const [addingAfter, setAddingAfter] = useState<string | null | 'end'>( null)
+  const [addingAfter, setAddingAfter] = useState<string | null | 'end'>(null)
   const [newLabel, setNewLabel] = useState('')
   const [addingBranch, setAddingBranch] = useState<string | null>(null)
   const [branchLabel, setBranchLabel] = useState('')
@@ -165,12 +165,14 @@ function FlowSkillTreeView({ treeId }: { treeId: string }) {
     setAddingBranch(null)
   }
 
-  const cycleStatus = (nodeId: string, current: FlowNodeStatus) => {
-    const next: FlowNodeStatus = current === 'pending' ? 'in-progress' : current === 'in-progress' ? 'done' : 'pending'
+  // 단순 토글: pending ↔ done
+  const toggleDone = (nodeId: string, current: FlowNodeStatus) => {
+    const next: FlowNodeStatus = current === 'done' ? 'pending' : 'done'
     dispatch({ type: 'UPDATE_FLOW_NODE', treeId, nodeId, updates: { status: next } })
   }
 
   const selectedNode = tree.nodes.find(n => n.id === state.selectedNodeId)
+  const allMainDone = mainChain.length > 0 && mainChain.every(n => n.status === 'done')
 
   return (
     <div className="flow-tree">
@@ -179,33 +181,50 @@ function FlowSkillTreeView({ treeId }: { treeId: string }) {
           {mainChain.map((node, i) => {
             const branches = tree.nodes.filter(n => n.parentId === node.id).sort((a, b) => a.order - b.order)
             const isSelected = state.selectedNodeId === node.id
-            const color = FLOW_COLORS[node.status]
+            const isDone = node.status === 'done'
+            // 이전 노드까지 모두 done이면 이 노드는 "다음 차례"
+            const prevAllDone = mainChain.slice(0, i).every(n => n.status === 'done')
 
             return (
               <div key={node.id} className="flow-column">
                 {/* Arrow from previous */}
-                {i > 0 && <div className="flow-arrow"><svg width="32" height="20" viewBox="0 0 32 20"><line x1="0" y1="10" x2="24" y2="10" stroke={mainChain[i - 1].status === 'done' ? '#00ff87' : '#3a3a4a'} strokeWidth="2" /><polygon points="24,5 32,10 24,15" fill={mainChain[i - 1].status === 'done' ? '#00ff87' : '#3a3a4a'} /></svg></div>}
+                {i > 0 && (
+                  <div className="flow-arrow">
+                    <svg width="32" height="20" viewBox="0 0 32 20">
+                      <line x1="0" y1="10" x2="24" y2="10" stroke={mainChain[i - 1].status === 'done' ? '#00ff87' : '#3a3a4a'} strokeWidth="2" />
+                      <polygon points="24,5 32,10 24,15" fill={mainChain[i - 1].status === 'done' ? '#00ff87' : '#3a3a4a'} />
+                    </svg>
+                  </div>
+                )}
 
                 {/* Main node */}
-                <div className={`flow-node flow-node--${node.status} ${isSelected ? 'flow-node--selected' : ''}`}
+                <div className={`flow-node ${isDone ? 'flow-node--done' : ''} ${prevAllDone && !isDone ? 'flow-node--next' : ''} ${isSelected ? 'flow-node--selected' : ''}`}
                   onClick={() => dispatch({ type: 'SET_SELECTED_NODE', nodeId: node.id })}>
-                  <div className="flow-node__status-dot" style={{ background: color }} onClick={e => { e.stopPropagation(); cycleStatus(node.id, node.status) }} title="상태 변경" />
+                  <div className={`flow-node__check ${isDone ? 'flow-node__check--on' : ''}`}
+                    onClick={e => { e.stopPropagation(); toggleDone(node.id, node.status) }}
+                    title={isDone ? 'OFF' : 'ON'}>
+                    {isDone ? '✓' : ''}
+                  </div>
                   <div className="flow-node__label">{node.label}</div>
-                  <div className="flow-node__meta">{FLOW_LABELS[node.status]}</div>
                 </div>
 
                 {/* Branches below */}
                 {branches.length > 0 && (
                   <div className="flow-branches">
                     <div className="flow-branch-line" />
-                    {branches.map(branch => (
-                      <div key={branch.id} className={`flow-branch flow-branch--${branch.status} ${state.selectedNodeId === branch.id ? 'flow-branch--selected' : ''}`}
-                        onClick={() => dispatch({ type: 'SET_SELECTED_NODE', nodeId: branch.id })}>
-                        <div className="flow-branch__dot" style={{ background: FLOW_COLORS[branch.status] }}
-                          onClick={e => { e.stopPropagation(); cycleStatus(branch.id, branch.status) }} />
-                        <span className="flow-branch__label">{branch.label}</span>
-                      </div>
-                    ))}
+                    {branches.map(branch => {
+                      const brDone = branch.status === 'done'
+                      return (
+                        <div key={branch.id} className={`flow-branch ${brDone ? 'flow-branch--done' : ''} ${state.selectedNodeId === branch.id ? 'flow-branch--selected' : ''}`}
+                          onClick={() => dispatch({ type: 'SET_SELECTED_NODE', nodeId: branch.id })}>
+                          <div className={`flow-branch__check ${brDone ? 'flow-branch__check--on' : ''}`}
+                            onClick={e => { e.stopPropagation(); toggleDone(branch.id, branch.status) }}>
+                            {brDone ? '✓' : ''}
+                          </div>
+                          <span className="flow-branch__label">{branch.label}</span>
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
 
@@ -242,13 +261,23 @@ function FlowSkillTreeView({ treeId }: { treeId: string }) {
         </div>
       </div>
 
+      {/* 최종 완료 바 */}
+      {allMainDone && (
+        <div className="flow-complete-bar">
+          <span className="flow-complete-bar__text">모든 단계 완료!</span>
+          <button className="flow-complete-bar__btn">🚀 업무 트리거 실행</button>
+        </div>
+      )}
+
       {/* Detail panel for selected node */}
       {selectedNode && (
         <div className="flow-detail">
           <div className="flow-detail__header">
-            <span className="flow-detail__dot" style={{ background: FLOW_COLORS[selectedNode.status] }} />
-            <span className="flow-detail__status">{FLOW_LABELS[selectedNode.status]}</span>
-            <button className="flow-detail__status-btn" onClick={() => cycleStatus(selectedNode.id, selectedNode.status)}>상태 변경</button>
+            <div className={`flow-detail__check ${selectedNode.status === 'done' ? 'flow-detail__check--on' : ''}`}
+              onClick={() => toggleDone(selectedNode.id, selectedNode.status)}>
+              {selectedNode.status === 'done' ? '✓' : ''}
+            </div>
+            <span className="flow-detail__status">{selectedNode.status === 'done' ? 'ON' : 'OFF'}</span>
           </div>
           <input className="flow-detail__title" value={selectedNode.label}
             onChange={e => dispatch({ type: 'UPDATE_FLOW_NODE', treeId, nodeId: selectedNode.id, updates: { label: e.target.value } })} />
@@ -294,7 +323,7 @@ export function SkillTreeView() {
   }
 
   const handleExportToGraph = useCallback(() => {
-    if (!activeTree) return
+    if (!activeTree || activeTree.exportedToGraph) return
     const completedPath = activeTree.nodes.filter(n => n.status === 'completed' || n.status === 'active').sort((a, b) => a.depth - b.depth)
     if (completedPath.length === 0) return
     const summary = generatePathSummary(activeTree.nodes)
@@ -306,7 +335,8 @@ export function SkillTreeView() {
       graphDispatch({ type: 'ADD_NODE', node: star })
       graphDispatch({ type: 'ADD_EDGE', edge: { id: generateId(), source: mainNode.id, target: star.id } })
     })
-  }, [activeTree, graphDispatch])
+    dispatch({ type: 'MARK_EXPORTED', treeId: activeTree.id })
+  }, [activeTree, graphDispatch, dispatch])
 
   const sidebarItems = tab === 'analysis' ? state.trees : state.flowTrees
   const activeId = tab === 'analysis' ? state.activeTreeId : state.activeFlowTreeId
