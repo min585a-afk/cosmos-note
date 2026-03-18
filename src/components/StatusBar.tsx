@@ -11,7 +11,7 @@ export function StatusBar() {
       </div>
       <div className="status-bar__right">
         <span>Graph View</span>
-        <span>Cosmos Note v0.1</span>
+        <span>Cosmos Note v0.3</span>
       </div>
     </div>
   )

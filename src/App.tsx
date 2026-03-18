@@ -35,7 +35,7 @@ function AppContent() {
       <CosmosBg />
       <Sidebar />
       <main className="main" ref={mainRef}>
-        <Header />
+        <Header onReheat={handleReheat} />
         <div className="canvas-wrapper">
           <GraphCanvas reheatRef={reheatRef} />
           <NodeTooltip containerWidth={size.w} containerHeight={size.h} onReheat={handleReheat} />

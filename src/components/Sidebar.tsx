@@ -1,4 +1,21 @@
+import { useGraphState, useGraphDispatch } from '../state/GraphContext'
+import type { NodeType } from '../types/graph'
+
 export function Sidebar() {
+  const { nodes, edges } = useGraphState()
+  const dispatch = useGraphDispatch()
+
+  const counts: Record<NodeType, number> = { work: 0, personal: 0, task: 0, idea: 0 }
+  for (const n of nodes) counts[n.type]++
+
+  const handleFilterByType = (type: NodeType) => {
+    const match = nodes.find(n => n.type === type)
+    if (match) {
+      dispatch({ type: 'SET_SELECTED', nodeId: match.id })
+      dispatch({ type: 'SET_VIEWPORT', viewport: { x: -match.x, y: -match.y, scale: 1.2 } })
+    }
+  }
+
   return (
     <aside className="sidebar">
       <div className="sidebar__header">
@@ -37,6 +54,7 @@ export function Sidebar() {
               </svg>
             </span>
             All Notes
+            <span className="nav-item__count">{nodes.length}</span>
           </button>
           <button className="nav-item">
             <span className="nav-item__icon">
@@ -47,35 +65,63 @@ export function Sidebar() {
               </svg>
             </span>
             Tasks
+            <span className="nav-item__count">{counts.task}</span>
           </button>
           <button className="nav-item">
             <span className="nav-item__icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
               </svg>
             </span>
-            AI Assist
+            Connections
+            <span className="nav-item__count">{edges.length}</span>
           </button>
         </div>
 
         <div className="nav-section">
           <div className="nav-section__label">Workspaces</div>
-          <button className="nav-item">
+          <button className="nav-item" onClick={() => handleFilterByType('work')}>
             <span className="nav-item__dot" style={{ background: 'var(--node-work)' }} />
             Work Projects
+            <span className="nav-item__count">{counts.work}</span>
           </button>
-          <button className="nav-item">
+          <button className="nav-item" onClick={() => handleFilterByType('personal')}>
             <span className="nav-item__dot" style={{ background: 'var(--node-personal)' }} />
             Personal
+            <span className="nav-item__count">{counts.personal}</span>
           </button>
-          <button className="nav-item">
+          <button className="nav-item" onClick={() => handleFilterByType('task')}>
             <span className="nav-item__dot" style={{ background: 'var(--node-task)' }} />
             Daily Tasks
+            <span className="nav-item__count">{counts.task}</span>
           </button>
-          <button className="nav-item">
+          <button className="nav-item" onClick={() => handleFilterByType('idea')}>
             <span className="nav-item__dot" style={{ background: 'var(--node-idea)' }} />
             Ideas
+            <span className="nav-item__count">{counts.idea}</span>
           </button>
+        </div>
+
+        {/* Recent nodes */}
+        <div className="nav-section">
+          <div className="nav-section__label">Recent</div>
+          {[...nodes]
+            .sort((a, b) => b.createdAt - a.createdAt)
+            .slice(0, 5)
+            .map(n => (
+              <button
+                key={n.id}
+                className="nav-item"
+                onClick={() => {
+                  dispatch({ type: 'SET_SELECTED', nodeId: n.id })
+                  dispatch({ type: 'SET_VIEWPORT', viewport: { x: -n.x, y: -n.y, scale: 1.2 } })
+                }}
+              >
+                <span className="nav-item__dot" style={{ background: n.color }} />
+                <span className="nav-item__label-text">{n.label}</span>
+              </button>
+            ))}
         </div>
       </nav>
 
