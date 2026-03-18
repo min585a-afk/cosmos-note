@@ -1,12 +1,35 @@
-import { createContext, useContext, useReducer, type ReactNode, type Dispatch } from 'react'
+import { createContext, useContext, useReducer, useEffect, useRef, type ReactNode, type Dispatch } from 'react'
 import { graphReducer, initialState } from './graphReducer'
 import type { GraphState, GraphAction } from '../types/graph'
+import { saveToStorage, loadFromStorage } from '../utils/storage'
 
 const StateCtx = createContext<GraphState>(initialState)
 const DispatchCtx = createContext<Dispatch<GraphAction>>(() => {})
 
+function getInitialState(): GraphState {
+  const saved = loadFromStorage()
+  if (saved && saved.nodes.length > 0) {
+    return {
+      ...initialState,
+      nodes: saved.nodes,
+      edges: saved.edges,
+    }
+  }
+  return initialState
+}
+
 export function GraphProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(graphReducer, initialState)
+  const [state, dispatch] = useReducer(graphReducer, undefined, getInitialState)
+  const saveTimerRef = useRef<number>(0)
+
+  // Auto-save to localStorage (debounced)
+  useEffect(() => {
+    clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = window.setTimeout(() => {
+      saveToStorage(state.nodes, state.edges)
+    }, 500)
+  }, [state.nodes, state.edges])
+
   return (
     <StateCtx.Provider value={state}>
       <DispatchCtx.Provider value={dispatch}>

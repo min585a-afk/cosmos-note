@@ -20,9 +20,10 @@ function extractKeywords(node: GraphNode): Set<string> {
     words.add(token)
   }
 
-  // From description — extract key terms
+  // From description — extract key terms (skip [[links]])
   if (node.description) {
-    const descTokens = node.description
+    const cleanDesc = node.description.replace(/\[\[[^\]]+\]\]/g, ' ')
+    const descTokens = cleanDesc
       .toLowerCase()
       .replace(/[^\w가-힣\s]/g, ' ')
       .split(/\s+/)
@@ -45,9 +46,7 @@ function extractKeywords(node: GraphNode): Set<string> {
     words.delete(word)
   }
 
-  // Also add the node type as a keyword
   words.add(node.type)
-
   return words
 }
 
@@ -56,11 +55,11 @@ function calculateSimilarity(a: Set<string>, b: Set<string>): number {
   let matches = 0
   for (const word of a) {
     if (b.has(word)) matches++
-    // Also check partial matches (substring)
+    // Partial match (substring) for Korean words
     for (const bWord of b) {
-      if (word !== bWord && word.length >= 3 && bWord.length >= 3) {
+      if (word !== bWord && word.length >= 2 && bWord.length >= 2) {
         if (word.includes(bWord) || bWord.includes(word)) {
-          matches += 0.5
+          matches += 0.7
         }
       }
     }
@@ -69,9 +68,21 @@ function calculateSimilarity(a: Set<string>, b: Set<string>): number {
 }
 
 /**
- * Find nodes that should be auto-linked to a new node
- * based on shared keywords, tags, and categories.
- * Returns edge objects to be added.
+ * Extract [[wikilink]] targets from a node's description
+ */
+function extractWikiLinks(description: string): string[] {
+  const links: string[] = []
+  const regex = /\[\[([^\]]+)\]\]/g
+  let match: RegExpExecArray | null
+  while ((match = regex.exec(description)) !== null) {
+    links.push(match[1].toLowerCase())
+  }
+  return links
+}
+
+/**
+ * Find nodes that should be auto-linked to a given node.
+ * Checks: shared keywords, shared tags, same type, [[wikilinks]]
  */
 export function findAutoLinks(
   newNode: GraphNode,
@@ -79,7 +90,6 @@ export function findAutoLinks(
   existingEdges: GraphEdge[],
   generateEdgeId: () => string
 ): GraphEdge[] {
-  const newKeywords = extractKeywords(newNode)
   const edges: GraphEdge[] = []
 
   // Track existing connections
@@ -89,33 +99,76 @@ export function findAutoLinks(
     connectedPairs.add(`${edge.target}:${edge.source}`)
   }
 
-  // Score each existing node
+  const isConnected = (a: string, b: string) =>
+    connectedPairs.has(`${a}:${b}`)
+
+  // 1. [[Wikilink]] connections — strongest signal, always link
+  const wikiLinks = extractWikiLinks(newNode.description)
+  for (const linkName of wikiLinks) {
+    const target = existingNodes.find(n =>
+      n.id !== newNode.id && n.label.toLowerCase() === linkName
+    )
+    if (target && !isConnected(newNode.id, target.id)) {
+      edges.push({
+        id: generateEdgeId(),
+        source: newNode.id,
+        target: target.id,
+      })
+      connectedPairs.add(`${newNode.id}:${target.id}`)
+      connectedPairs.add(`${target.id}:${newNode.id}`)
+    }
+  }
+
+  // Also check: do any existing nodes have [[this node's label]] in their description?
+  const myLabel = newNode.label.toLowerCase()
+  for (const node of existingNodes) {
+    if (node.id === newNode.id) continue
+    if (isConnected(newNode.id, node.id)) continue
+    const theirLinks = extractWikiLinks(node.description)
+    if (theirLinks.includes(myLabel)) {
+      edges.push({
+        id: generateEdgeId(),
+        source: node.id,
+        target: newNode.id,
+      })
+      connectedPairs.add(`${newNode.id}:${node.id}`)
+      connectedPairs.add(`${node.id}:${newNode.id}`)
+    }
+  }
+
+  // 2. Keyword-based similarity connections
+  const newKeywords = extractKeywords(newNode)
   const scored: Array<{ node: GraphNode; score: number }> = []
 
   for (const node of existingNodes) {
     if (node.id === newNode.id) continue
-
-    // Skip if already connected
-    if (connectedPairs.has(`${newNode.id}:${node.id}`)) continue
+    if (isConnected(newNode.id, node.id)) continue
 
     const existingKeywords = extractKeywords(node)
     let score = calculateSimilarity(newKeywords, existingKeywords)
 
     // Bonus for same type
-    if (node.type === newNode.type) score += 0.5
+    if (node.type === newNode.type) score += 0.3
 
-    // Bonus for shared tags (stronger signal)
+    // Bonus for shared tags
     const sharedTags = newNode.tags.filter(t => node.tags.includes(t))
-    score += sharedTags.length * 2
+    score += sharedTags.length * 2.5
 
-    if (score >= 1.5) {
+    // Bonus: label contains in label (e.g., "디자인" ⊂ "UI 디자인")
+    const nl = newNode.label.toLowerCase()
+    const ol = node.label.toLowerCase()
+    if (nl.length >= 2 && ol.length >= 2) {
+      if (nl.includes(ol) || ol.includes(nl)) score += 2
+    }
+
+    if (score >= 1.2) {
       scored.push({ node, score })
     }
   }
 
-  // Sort by score and take top connections (max 3)
   scored.sort((a, b) => b.score - a.score)
-  const topMatches = scored.slice(0, 3)
+  const maxAutoLinks = 3 - edges.length // Already have wikilink edges
+  const topMatches = scored.slice(0, Math.max(0, maxAutoLinks))
 
   for (const match of topMatches) {
     edges.push({
