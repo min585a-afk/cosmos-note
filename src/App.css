@@ -13,10 +13,11 @@
   inset: 0;
   z-index: 0;
   overflow: hidden;
-  background: radial-gradient(ellipse at 20% 50%, rgba(40, 20, 80, 0.4) 0%, transparent 60%),
-              radial-gradient(ellipse at 80% 20%, rgba(20, 40, 100, 0.3) 0%, transparent 50%),
-              radial-gradient(ellipse at 50% 80%, rgba(60, 20, 60, 0.2) 0%, transparent 50%),
-              var(--bg-primary);
+  background: radial-gradient(ellipse at 20% 50%, rgba(40, 20, 80, 0.5) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 20%, rgba(15, 30, 90, 0.4) 0%, transparent 50%),
+              radial-gradient(ellipse at 50% 80%, rgba(60, 20, 60, 0.3) 0%, transparent 50%),
+              radial-gradient(ellipse at 60% 40%, rgba(10, 15, 40, 0.6) 0%, transparent 70%),
+              #050510;
 }
 
 .stars-layer {
@@ -30,9 +31,9 @@
   background: #fff;
 }
 
-.star--sm { width: 1px; height: 1px; opacity: 0.4; }
-.star--md { width: 1.5px; height: 1.5px; opacity: 0.6; }
-.star--lg { width: 2px; height: 2px; opacity: 0.8; }
+.star--sm { width: 1px; height: 1px; opacity: 0.5; }
+.star--md { width: 1.5px; height: 1.5px; opacity: 0.7; }
+.star--lg { width: 2.5px; height: 2.5px; opacity: 0.9; box-shadow: 0 0 3px rgba(255,255,255,0.4); }
 
 @keyframes twinkle {
   0%, 100% { opacity: 0.2; }
@@ -48,7 +49,7 @@
   position: absolute;
   border-radius: 50%;
   filter: blur(80px);
-  opacity: 0.12;
+  opacity: 0.15;
   pointer-events: none;
 }
 
@@ -71,10 +72,50 @@
   animation: nebulaDrift 35s ease-in-out infinite alternate;
 }
 
+.nebula--4 {
+  width: 350px; height: 250px;
+  background: linear-gradient(135deg, rgba(100, 60, 180, 0.6), rgba(40, 100, 200, 0.3));
+  top: 35%; left: 50%;
+  animation: nebulaDrift 28s ease-in-out infinite alternate;
+  filter: blur(100px);
+  opacity: 0.1;
+}
+
 @keyframes nebulaDrift {
   0% { transform: translate(0, 0) scale(1); }
   50% { transform: translate(30px, -20px) scale(1.05); }
   100% { transform: translate(-20px, 15px) scale(0.95); }
+}
+
+/* Shooting stars */
+.shooting-star {
+  position: absolute;
+  width: 80px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.8), transparent);
+  border-radius: 1px;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.shooting-star--1 {
+  top: 15%; left: 70%;
+  transform: rotate(-35deg);
+  animation: shoot 8s ease-in-out infinite;
+  animation-delay: 3s;
+}
+
+.shooting-star--2 {
+  top: 55%; left: 20%;
+  transform: rotate(-25deg);
+  animation: shoot 12s ease-in-out infinite;
+  animation-delay: 7s;
+}
+
+@keyframes shoot {
+  0%, 95%, 100% { opacity: 0; transform: rotate(-35deg) translateX(0); }
+  2% { opacity: 1; }
+  5% { opacity: 0; transform: rotate(-35deg) translateX(-200px); }
 }
 
 /* ===== Sidebar ===== */

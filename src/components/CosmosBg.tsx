@@ -25,9 +25,9 @@ function generateStars(count: number, size: 'sm' | 'md' | 'lg') {
 export function CosmosBg() {
   const stars = useMemo(
     () => [
-      ...generateStars(50, 'sm'),
-      ...generateStars(20, 'md'),
-      ...generateStars(10, 'lg'),
+      ...generateStars(120, 'sm'),
+      ...generateStars(40, 'md'),
+      ...generateStars(15, 'lg'),
     ],
     []
   )
@@ -35,9 +35,12 @@ export function CosmosBg() {
   return (
     <div className="cosmos-bg">
       <div className="stars-layer">{stars}</div>
+      <div className="shooting-star shooting-star--1" />
+      <div className="shooting-star shooting-star--2" />
       <div className="nebula nebula--1" />
       <div className="nebula nebula--2" />
       <div className="nebula nebula--3" />
+      <div className="nebula nebula--4" />
     </div>
   )
 }

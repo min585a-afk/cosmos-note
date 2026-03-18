@@ -27,12 +27,12 @@ export function createNode(
 }
 
 const sampleNodes: GraphNode[] = [
-  createNode({ id: 's1', label: 'Project Architecture', type: 'work', description: 'Design system structure and component hierarchy', tags: ['design', 'planning'], x: -60, y: -100 }),
-  createNode({ id: 's2', label: 'AI Integration', type: 'idea', description: 'LLM-based note summarization and task generation', tags: ['ai', 'feature'], x: 120, y: -80 }),
-  createNode({ id: 's3', label: 'Weekly Review', type: 'task', description: 'Review progress and update task priorities', tags: ['routine'], x: -100, y: 60 }),
-  createNode({ id: 's4', label: 'Reading List', type: 'personal', description: 'Books and articles to read this month', tags: ['personal'], x: 150, y: 90 }),
-  createNode({ id: 's5', label: 'API Design', type: 'work', description: 'RESTful endpoints for note sync service', tags: ['backend', 'api'], x: -150, y: -30 }),
-  createNode({ id: 's6', label: 'Graph Visualization', type: 'idea', description: 'Node connection animations and force layout', tags: ['ui', 'experiment'], x: 50, y: 120 }),
+  createNode({ id: 's1', label: 'Project Architecture', type: 'work', description: 'Design system structure and component hierarchy', tags: ['design', 'planning'], x: -60, y: -100, radius: 14 }),
+  createNode({ id: 's2', label: 'AI Integration', type: 'idea', description: 'LLM-based note summarization and task generation', tags: ['ai', 'feature'], x: 120, y: -80, radius: 10 }),
+  createNode({ id: 's3', label: 'Weekly Review', type: 'task', description: 'Review progress and update task priorities', tags: ['routine'], x: -100, y: 60, radius: 10 }),
+  createNode({ id: 's4', label: 'Reading List', type: 'personal', description: 'Books and articles to read this month', tags: ['personal'], x: 150, y: 90, radius: 10 }),
+  createNode({ id: 's5', label: 'API Design', type: 'work', description: 'RESTful endpoints for note sync service', tags: ['backend', 'api'], x: -150, y: -30, radius: 10 }),
+  createNode({ id: 's6', label: 'Graph Visualization', type: 'idea', description: 'Node connection animations and force layout', tags: ['ui', 'experiment'], x: 50, y: 120, radius: 10 }),
 ]
 
 const sampleEdges: GraphEdge[] = [

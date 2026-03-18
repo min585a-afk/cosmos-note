@@ -64,11 +64,20 @@ export function drawNode(
 ) {
   const { x, y, color } = node
 
-  const r = isHovered ? 7 : isSelected ? 6 : isSearchMatch ? 6 : 4.5
+  // Size hierarchy: title nodes (14) bigger, branches (10) smaller
+  const baseR = node.radius >= 14 ? 6 : node.radius >= 10 ? 3.5 : 3
+  const r = isHovered ? baseR + 2 : isSelected ? baseR + 1.5 : isSearchMatch ? baseR + 1.5 : baseR
 
-  // Glow - stronger for search matches
-  const glowR = isHovered ? r + 16 : isSelected ? r + 14 : isSearchMatch ? r + 18 : r + 8
-  const glowAlpha = isSearchMatch ? '55' : '40'
+  // Per-node glow variation based on id hash
+  const idHash = node.id.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)
+  const glowVariation = 0.4 + (Math.abs(idHash % 100) / 100) * 0.6  // 0.4 ~ 1.0
+
+  // Glow - stronger for search matches, varied per node
+  const baseGlowR = isHovered ? r + 16 : isSelected ? r + 14 : isSearchMatch ? r + 18 : r + 8
+  const glowR = baseGlowR * glowVariation + baseGlowR * 0.3
+  const baseAlpha = isSearchMatch ? 0x55 : 0x40
+  const glowAlphaNum = Math.round(baseAlpha * glowVariation)
+  const glowAlpha = glowAlphaNum.toString(16).padStart(2, '0')
   const glow = ctx.createRadialGradient(x, y, r, x, y, glowR)
   glow.addColorStop(0, color + glowAlpha)
   glow.addColorStop(1, color + '00')
@@ -104,12 +113,15 @@ export function drawLabel(
   isSearchMatch: boolean = false
 ) {
   const showLabel = isHovered || isSelected || isSearchMatch
+  const isTitle = node.radius >= 14
 
-  ctx.font = `${showLabel ? '12px' : '10px'} Inter, system-ui, sans-serif`
+  const fontSize = isTitle ? (showLabel ? 11 : 10) : (showLabel ? 9.5 : 8.5)
+  const weight = isTitle ? '600' : (showLabel ? '500' : '400')
+  ctx.font = `${weight} ${fontSize}px 'Pretendard Variable', system-ui, sans-serif`
   ctx.textAlign = 'left'
   ctx.textBaseline = 'middle'
-  ctx.fillStyle = showLabel ? '#f0f0f8' : '#9999b0'
-  ctx.globalAlpha = showLabel ? 1 : 0.7
+  ctx.fillStyle = isTitle ? '#f8f8ff' : (showLabel ? '#f0f0f8' : '#9999b0')
+  ctx.globalAlpha = isTitle ? 1 : (showLabel ? 1 : 0.7)
   ctx.fillText(node.label, node.x + 12, node.y)
   ctx.globalAlpha = 1
 }

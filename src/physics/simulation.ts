@@ -3,7 +3,7 @@ import type { GraphNode, GraphEdge } from '../types/graph'
 const SPRING_STRENGTH = 0.03
 const SPRING_LENGTH = 220
 const REPULSION_STRENGTH = 800
-const CENTER_STRENGTH = 0.012
+const CENTER_STRENGTH = 0.003
 const DAMPING = 0.82
 const MIN_DIST = 30
 
@@ -57,10 +57,13 @@ export function tick(nodes: GraphNode[], edges: GraphEdge[], alpha: number): voi
     target.vy -= fy
   }
 
-  // Center gravity
+  // Center gravity — pull toward centroid, not (0,0)
+  let cx = 0, cy = 0
+  for (const node of nodes) { cx += node.x; cy += node.y }
+  cx /= n; cy /= n
   for (const node of nodes) {
-    node.vx -= node.x * CENTER_STRENGTH * alpha
-    node.vy -= node.y * CENTER_STRENGTH * alpha
+    node.vx -= (node.x - cx) * CENTER_STRENGTH * alpha
+    node.vy -= (node.y - cy) * CENTER_STRENGTH * alpha
   }
 
   // Apply damping and update positions

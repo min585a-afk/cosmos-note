@@ -1,6 +1,28 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useGraphState, useGraphDispatch } from '../state/GraphContext'
 import { createNode } from '../state/graphReducer'
+import type { NodeType } from '../types/graph'
+
+function detectNodeType(text: string): NodeType {
+  const lower = text.toLowerCase()
+  // Design/creative → idea (민트)
+  if (/디자인|ui|ux|레이아웃|컬러|폰트|타이포|와이어프레임|프로토타입|목업|figma|sketch|일러스트|그래픽|아이콘|로고|브랜딩|비주얼|css|스타일/.test(lower)) {
+    return 'idea'
+  }
+  // Work/business → work (보라)
+  if (/회의|미팅|보고|업무|프로젝트|일정|마감|클라이언트|기획|전략|분석|리뷰|발표|제안/.test(lower)) {
+    return 'work'
+  }
+  // Task/todo → task (핑크)
+  if (/해야|할일|todo|체크|완료|진행|구현|수정|버그|fix|deploy|배포|테스트|확인/.test(lower)) {
+    return 'task'
+  }
+  // Personal → personal (파랑)
+  if (/일기|감정|생각|느낌|고민|꿈|목표|운동|건강|취미|여행|독서|영화/.test(lower)) {
+    return 'personal'
+  }
+  return 'idea'
+}
 
 export function NodeCreator({ onReheat }: { onReheat: () => void }) {
   const state = useGraphState()
@@ -42,10 +64,11 @@ export function NodeCreator({ onReheat }: { onReheat: () => void }) {
     const text = value.trim()
     if (!text) return
 
-    // Create a single node only — no auto-branches
+    // Create a single node only — auto-detect type from content
+    const detectedType = detectNodeType(text)
     const newNode = createNode({
       label: text,
-      type: 'idea',
+      type: detectedType,
       x: worldX,
       y: worldY,
       description: '',
