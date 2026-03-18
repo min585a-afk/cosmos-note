@@ -441,6 +441,9 @@ export function NoteView({ onSwitchToGraph }: { onSwitchToGraph: (nodeId: string
                 <button className="note-editor__action-btn note-editor__action-btn--danger" onClick={handleDelete}>
                   삭제
                 </button>
+                <span className="note-editor__esc-hint" title="ESC 키로 그래프뷰 복귀">
+                  ESC → 그래프
+                </span>
               </div>
             </div>
 

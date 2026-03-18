@@ -368,6 +368,41 @@
   color: var(--text-muted); flex-shrink: 0;
 }
 
+/* Size toggle (planet/star) */
+.quick-input__size-toggle,
+.node-creator__size-toggle {
+  width: 28px; height: 28px; border-radius: 6px;
+  border: 1px solid var(--border); background: rgba(15, 18, 30, 0.6);
+  cursor: pointer; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+  color: var(--text-muted);
+}
+
+.quick-input__size-toggle:hover,
+.node-creator__size-toggle:hover {
+  border-color: var(--border-active);
+  background: rgba(167, 139, 250, 0.08);
+}
+
+.quick-input__size-toggle--planet,
+.node-creator__size-toggle--planet {
+  border-color: rgba(167, 139, 250, 0.3);
+  background: rgba(167, 139, 250, 0.08);
+}
+
+.node-creator__size-toggle--star {
+  border-color: rgba(0, 255, 135, 0.3);
+  background: rgba(0, 255, 135, 0.06);
+}
+
+.node-creator__size-label {
+  font-size: 9px; padding: 1px 6px; border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted); flex-shrink: 0;
+}
+
 /* ===== Canvas ===== */
 .canvas-wrapper {
   flex: 1;
@@ -1279,6 +1314,14 @@
 .note-editor__empty p { font-size: 13px; }
 
 .note-editor__empty-sub { font-size: 11px; opacity: 0.5; }
+
+.note-editor__esc-hint {
+  font-size: 9px; padding: 2px 8px; border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  color: var(--text-muted); white-space: nowrap;
+  margin-left: 4px;
+}
 
 /* ===== Scrollbar ===== */
 ::-webkit-scrollbar { width: 6px; }

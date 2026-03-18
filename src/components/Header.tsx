@@ -16,6 +16,7 @@ export function Header({ onReheat }: { onReheat: () => void }) {
   const { viewport } = useGraphState()
   const dispatch = useGraphDispatch()
   const [quickInput, setQuickInput] = useState('')
+  const [nodeSize, setNodeSize] = useState<'planet' | 'star'>('planet')
   const quickInputRef = useRef<HTMLInputElement>(null)
 
   const handleQuickSubmit = (e: React.FormEvent) => {
@@ -33,12 +34,19 @@ export function Header({ onReheat }: { onReheat: () => void }) {
       x: cx,
       y: cy,
       description: '',
-      radius: 14,
+      radius: nodeSize === 'planet' ? 14 : 10,
     })
     dispatch({ type: 'ADD_NODE', node: newNode })
     dispatch({ type: 'SET_SELECTED', nodeId: newNode.id })
     onReheat()
     setQuickInput('')
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Tab') {
+      e.preventDefault()
+      setNodeSize(prev => prev === 'planet' ? 'star' : 'planet')
+    }
   }
 
   return (
@@ -53,16 +61,21 @@ export function Header({ onReheat }: { onReheat: () => void }) {
 
       <div className="header__center">
         <form onSubmit={handleQuickSubmit} className="quick-input">
-          <svg className="quick-input__icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
+          <button
+            type="button"
+            className={`quick-input__size-toggle ${nodeSize === 'planet' ? 'quick-input__size-toggle--planet' : ''}`}
+            onClick={() => setNodeSize(prev => prev === 'planet' ? 'star' : 'planet')}
+            title="Tab 키로 행성/별 전환"
+          >
+            {nodeSize === 'planet' ? '🪐' : '✦'}
+          </button>
           <input
             ref={quickInputRef}
             type="text"
             value={quickInput}
             onChange={(e) => setQuickInput(e.target.value)}
-            placeholder="할 일, 생각, 궁금한 것을 적어보세요..."
+            onKeyDown={handleKeyDown}
+            placeholder={nodeSize === 'planet' ? '메인 노트 (행성) 생성...' : '가지 노트 (별) 생성...'}
             className="quick-input__field"
             autoComplete="off"
           />
@@ -79,7 +92,6 @@ export function Header({ onReheat }: { onReheat: () => void }) {
 
       <div className="header__actions">
         <button className="search-bar" onClick={() => {
-          // Trigger Ctrl+K event to open floating search
           window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))
         }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

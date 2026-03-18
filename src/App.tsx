@@ -49,6 +49,17 @@ function AppContent() {
     setView('notes')
   }, [dispatch])
 
+  // ESC in notes view → back to graph
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && view === 'notes') {
+        setView('graph')
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [view])
+
   return (
     <div className="app">
       <CosmosBg />

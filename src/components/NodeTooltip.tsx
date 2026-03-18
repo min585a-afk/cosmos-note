@@ -140,6 +140,7 @@ export function NodeTooltip({
     >
       <div className="node-tooltip__header">
         <div className="node-tooltip__bar" style={{ background: node.description.trim() ? NODE_COLORS[node.type] : EMPTY_NODE_COLOR }} />
+        <span className="node-tooltip__node-kind">{node.radius >= 14 ? '🪐' : '✦'}</span>
         <button className="node-tooltip__type-btn" onClick={cycleType} title="타입 변경">
           {NODE_TYPE_LABELS[node.type]}
         </button>
