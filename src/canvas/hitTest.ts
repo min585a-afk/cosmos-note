@@ -1,7 +1,7 @@
 import type { GraphNode, Viewport } from '../types/graph'
 import { screenToWorld } from './viewport'
 
-const HIT_PADDING = 8
+const HIT_PADDING = 12
 
 export function hitTestNode(
   screenX: number,

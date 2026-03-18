@@ -27,27 +27,13 @@ export function drawEdge(
   source: GraphNode,
   target: GraphNode,
   _isActive: boolean = false,
-  time: number = 0
+  _time: number = 0
 ) {
-  const mx = (source.x + target.x) / 2
-  const my = (source.y + target.y) / 2
-  const dx = (target.x - source.x) * 0.2
-  const pulse = 0.25 + Math.sin(time * 0.001) * 0.08
-
-  // Glow layer
   ctx.beginPath()
   ctx.moveTo(source.x, source.y)
-  ctx.quadraticCurveTo(mx + dx, my - dx * 0.5, target.x, target.y)
-  ctx.strokeStyle = `rgba(124, 106, 255, ${pulse * 0.4})`
-  ctx.lineWidth = 4
-  ctx.stroke()
-
-  // Sharp line
-  ctx.beginPath()
-  ctx.moveTo(source.x, source.y)
-  ctx.quadraticCurveTo(mx + dx, my - dx * 0.5, target.x, target.y)
-  ctx.strokeStyle = `rgba(140, 120, 255, ${pulse})`
-  ctx.lineWidth = 1.5
+  ctx.lineTo(target.x, target.y)
+  ctx.strokeStyle = 'rgba(150, 140, 200, 0.15)'
+  ctx.lineWidth = 1
   ctx.stroke()
 }
 
@@ -73,54 +59,26 @@ export function drawNode(
   node: GraphNode,
   isHovered: boolean,
   isSelected: boolean,
-  time: number
+  _time: number
 ) {
-  const { x, y, radius, color, createdAt } = node
-  const age = time - createdAt
-  const fadeIn = Math.min(1, age / 500)
-  const pulse = 1 + Math.sin(time * 0.002 + x * 0.01) * 0.15
-  const r = radius * pulse * fadeIn
+  const { x, y, color } = node
 
-  ctx.globalAlpha = fadeIn
+  // Obsidian-style: simple filled circle, size varies by state
+  const r = isHovered ? 7 : isSelected ? 6 : 4.5
 
-  // Outer glow
-  const glowRadius = r * (isHovered ? 6 : isSelected ? 5 : 4)
-  const glow = ctx.createRadialGradient(x, y, r * 0.3, x, y, glowRadius)
-  glow.addColorStop(0, color + '80')
-  glow.addColorStop(0.3, color + '40')
-  glow.addColorStop(0.6, color + '15')
-  glow.addColorStop(1, color + '00')
-  ctx.beginPath()
-  ctx.arc(x, y, glowRadius, 0, TWO_PI)
-  ctx.fillStyle = glow
-  ctx.fill()
-
-  // Core circle
-  const coreGrad = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r)
-  coreGrad.addColorStop(0, '#ffffff')
-  coreGrad.addColorStop(0.4, color)
-  coreGrad.addColorStop(1, color + 'aa')
-  ctx.beginPath()
-  ctx.arc(x, y, r, 0, TWO_PI)
-  ctx.fillStyle = coreGrad
-  ctx.fill()
-
-  // Bright center
-  ctx.beginPath()
-  ctx.arc(x, y, r * 0.35, 0, TWO_PI)
-  ctx.fillStyle = '#ffffffcc'
-  ctx.fill()
-
-  // Selection ring
-  if (isSelected) {
+  // Subtle outer ring on hover/select
+  if (isHovered || isSelected) {
     ctx.beginPath()
     ctx.arc(x, y, r + 4, 0, TWO_PI)
-    ctx.strokeStyle = color + 'aa'
-    ctx.lineWidth = 1.5
-    ctx.stroke()
+    ctx.fillStyle = color + '20'
+    ctx.fill()
   }
 
-  ctx.globalAlpha = 1
+  // Main circle - solid color fill
+  ctx.beginPath()
+  ctx.arc(x, y, r, 0, TWO_PI)
+  ctx.fillStyle = color
+  ctx.fill()
 }
 
 export function drawLabel(
@@ -128,30 +86,16 @@ export function drawLabel(
   node: GraphNode,
   isHovered: boolean,
   isSelected: boolean,
-  time: number
+  _time: number
 ) {
-  const age = time - node.createdAt
-  const fadeIn = Math.min(1, age / 500)
   const showLabel = isHovered || isSelected
 
-  ctx.globalAlpha = fadeIn * (showLabel ? 1 : 0.85)
-  ctx.font = `500 ${showLabel ? '13px' : '11px'} Inter, system-ui, sans-serif`
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'top'
-
-  const label = node.label
-  const yOffset = node.radius * 2.2 + 6
-
-  // Text background for readability
-  const metrics = ctx.measureText(label)
-  const tw = metrics.width + 12
-  const th = showLabel ? 18 : 16
-  ctx.fillStyle = 'rgba(8, 9, 13, 0.65)'
-  ctx.fillRect(node.x - tw / 2, node.y + yOffset - 3, tw, th)
-
-  // Text
-  ctx.fillStyle = showLabel ? '#ffffff' : '#c0c4d6'
-  ctx.fillText(label, node.x, node.y + yOffset)
-
+  // Only show labels when hovered/selected, or always show at a reasonable zoom
+  ctx.font = `${showLabel ? '12px' : '10px'} Inter, system-ui, sans-serif`
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'middle'
+  ctx.fillStyle = showLabel ? '#e8e8f0' : '#8888a0'
+  ctx.globalAlpha = showLabel ? 1 : 0.7
+  ctx.fillText(node.label, node.x + 12, node.y)
   ctx.globalAlpha = 1
 }
