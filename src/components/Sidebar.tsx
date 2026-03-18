@@ -1,7 +1,8 @@
 import { useGraphState, useGraphDispatch } from '../state/GraphContext'
 import type { NodeType } from '../types/graph'
+import type { ViewMode } from '../App'
 
-export function Sidebar() {
+export function Sidebar({ view, onViewChange }: { view: ViewMode; onViewChange: (v: ViewMode) => void }) {
   const { nodes, edges } = useGraphState()
   const dispatch = useGraphDispatch()
 
@@ -9,10 +10,11 @@ export function Sidebar() {
   for (const n of nodes) counts[n.type]++
 
   const handleFilterByType = (type: NodeType) => {
+    // Switch to notes view filtered to this type
+    onViewChange('notes')
     const match = nodes.find(n => n.type === type)
     if (match) {
       dispatch({ type: 'SET_SELECTED', nodeId: match.id })
-      dispatch({ type: 'SET_VIEWPORT', viewport: { x: -match.x, y: -match.y, scale: 1.2 } })
     }
   }
 
@@ -31,7 +33,10 @@ export function Sidebar() {
       <nav className="sidebar__nav">
         <div className="nav-section">
           <div className="nav-section__label">General</div>
-          <button className="nav-item nav-item--active">
+          <button
+            className={`nav-item ${view === 'graph' ? 'nav-item--active' : ''}`}
+            onClick={() => onViewChange('graph')}
+          >
             <span className="nav-item__icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" />
@@ -43,7 +48,10 @@ export function Sidebar() {
             </span>
             Graph View
           </button>
-          <button className="nav-item">
+          <button
+            className={`nav-item ${view === 'notes' ? 'nav-item--active' : ''}`}
+            onClick={() => onViewChange('notes')}
+          >
             <span className="nav-item__icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
@@ -55,17 +63,6 @@ export function Sidebar() {
             </span>
             All Notes
             <span className="nav-item__count">{nodes.length}</span>
-          </button>
-          <button className="nav-item">
-            <span className="nav-item__icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                <line x1="3" y1="9" x2="21" y2="9" />
-                <line x1="9" y1="21" x2="9" y2="9" />
-              </svg>
-            </span>
-            Tasks
-            <span className="nav-item__count">{counts.task}</span>
           </button>
           <button className="nav-item">
             <span className="nav-item__icon">
@@ -115,7 +112,9 @@ export function Sidebar() {
                 className="nav-item"
                 onClick={() => {
                   dispatch({ type: 'SET_SELECTED', nodeId: n.id })
-                  dispatch({ type: 'SET_VIEWPORT', viewport: { x: -n.x, y: -n.y, scale: 1.2 } })
+                  if (view === 'graph') {
+                    dispatch({ type: 'SET_VIEWPORT', viewport: { x: -n.x, y: -n.y, scale: 1.2 } })
+                  }
                 }}
               >
                 <span className="nav-item__dot" style={{ background: n.color }} />
