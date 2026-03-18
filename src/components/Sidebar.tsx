@@ -4,14 +4,13 @@ import { NODE_COLORS, EMPTY_NODE_COLOR } from '../types/graph'
 import type { ViewMode } from '../App'
 
 export function Sidebar({ view, onViewChange }: { view: ViewMode; onViewChange: (v: ViewMode) => void }) {
-  const { nodes, edges } = useGraphState()
+  const { nodes } = useGraphState()
   const dispatch = useGraphDispatch()
 
   const counts: Record<NodeType, number> = { work: 0, personal: 0, task: 0, idea: 0 }
   for (const n of nodes) counts[n.type]++
 
   const handleFilterByType = (type: NodeType) => {
-    // Switch to notes view filtered to this type
     onViewChange('notes')
     const match = nodes.find(n => n.type === type)
     if (match) {
@@ -65,16 +64,6 @@ export function Sidebar({ view, onViewChange }: { view: ViewMode; onViewChange: 
             All Notes
             <span className="nav-item__count">{nodes.length}</span>
           </button>
-          <button className="nav-item">
-            <span className="nav-item__icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-              </svg>
-            </span>
-            Connections
-            <span className="nav-item__count">{edges.length}</span>
-          </button>
           <button
             className={`nav-item ${view === 'skilltree' ? 'nav-item--active' : ''}`}
             onClick={() => onViewChange('skilltree')}
@@ -119,16 +108,16 @@ export function Sidebar({ view, onViewChange }: { view: ViewMode; onViewChange: 
           </button>
         </div>
 
-        {/* Recent nodes */}
-        <div className="nav-section">
+        {/* Recent — compact */}
+        <div className="nav-section nav-section--compact">
           <div className="nav-section__label">Recent</div>
           {[...nodes]
             .sort((a, b) => b.createdAt - a.createdAt)
-            .slice(0, 5)
+            .slice(0, 4)
             .map(n => (
               <button
                 key={n.id}
-                className="nav-item"
+                className="nav-item nav-item--small"
                 onClick={() => {
                   dispatch({ type: 'SET_SELECTED', nodeId: n.id })
                   if (view === 'graph') {

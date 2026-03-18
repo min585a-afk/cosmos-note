@@ -12,10 +12,11 @@ function loadSaved(): SkillTreeState {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return initialSkillTreeState
     const data = JSON.parse(raw)
-    if (data.trees) {
-      return { ...initialSkillTreeState, trees: data.trees }
+    return {
+      ...initialSkillTreeState,
+      trees: data.trees || [],
+      gameTrees: data.gameTrees || [],
     }
-    return initialSkillTreeState
   } catch {
     return initialSkillTreeState
   }
@@ -29,10 +30,13 @@ export function SkillTreeProvider({ children }: { children: ReactNode }) {
     clearTimeout(saveTimer.current)
     saveTimer.current = window.setTimeout(() => {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ trees: state.trees }))
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          trees: state.trees,
+          gameTrees: state.gameTrees,
+        }))
       } catch { /* full */ }
     }, 500)
-  }, [state.trees])
+  }, [state.trees, state.gameTrees])
 
   return (
     <StateCtx.Provider value={state}>
