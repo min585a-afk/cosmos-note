@@ -8,6 +8,7 @@ import { GraphCanvas } from './canvas/GraphCanvas'
 import { NodeTooltip } from './components/NodeTooltip'
 import { BranchInput } from './components/BranchInput'
 import { NodeCreator } from './components/NodeCreator'
+import { FloatingSearch } from './components/FloatingSearch'
 import './App.css'
 
 function AppContent() {
@@ -41,6 +42,7 @@ function AppContent() {
           <NodeTooltip containerWidth={size.w} containerHeight={size.h} onReheat={handleReheat} />
           <BranchInput containerWidth={size.w} containerHeight={size.h} onReheat={handleReheat} />
           <NodeCreator onReheat={handleReheat} />
+          <FloatingSearch />
         </div>
         <StatusBar />
       </main>
