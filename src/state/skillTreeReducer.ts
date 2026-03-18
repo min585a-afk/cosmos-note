@@ -1,4 +1,4 @@
-import type { SkillTreeState, SkillTreeAction, SkillNode, SkillTree, GameSkillTree, GameSkill } from '../types/skillTree'
+import type { SkillTreeState, SkillTreeAction, SkillNode, SkillTree, FlowTree, FlowNode } from '../types/skillTree'
 
 let _idCounter = 0
 function genId(prefix: string): string {
@@ -7,9 +7,9 @@ function genId(prefix: string): string {
 
 export const initialSkillTreeState: SkillTreeState = {
   trees: [],
-  gameTrees: [],
+  flowTrees: [],
   activeTreeId: null,
-  activeGameTreeId: null,
+  activeFlowTreeId: null,
   selectedNodeId: null,
   activeTab: 'analysis',
 }
@@ -22,11 +22,7 @@ export function skillTreeReducer(state: SkillTreeState, action: SkillTreeAction)
     // ===== Analysis Tree =====
     case 'CREATE_TREE': {
       const tree: SkillTree = {
-        id: genId('tree-'),
-        name: action.name,
-        treeType: 'analysis',
-        nodes: [],
-        createdAt: Date.now(),
+        id: genId('tree-'), name: action.name, treeType: 'analysis', nodes: [], createdAt: Date.now(),
       }
       return { ...state, trees: [...state.trees, tree], activeTreeId: tree.id }
     }
@@ -46,41 +42,27 @@ export function skillTreeReducer(state: SkillTreeState, action: SkillTreeAction)
 
     case 'ADD_ROOT_NODE': {
       const rootNode: SkillNode = {
-        id: genId('sn-'),
-        label: action.label,
-        description: action.description,
-        status: 'active',
-        parentId: null,
-        depth: 0,
-        branchIndex: 0,
+        id: genId('sn-'), label: action.label, description: action.description,
+        status: 'active', parentId: null, depth: 0, branchIndex: 0,
       }
       return {
         ...state,
-        trees: state.trees.map(t =>
-          t.id === action.treeId ? { ...t, nodes: [...t.nodes, rootNode] } : t
-        ),
+        trees: state.trees.map(t => t.id === action.treeId ? { ...t, nodes: [...t.nodes, rootNode] } : t),
       }
     }
 
     case 'ADD_BRANCH_NODES': {
       const newNodes: SkillNode[] = action.nodes.map((n, i) => ({
-        id: genId('sn-'),
-        label: n.label,
-        description: n.description,
-        status: 'locked' as const,
-        parentId: action.parentId,
-        depth: 0,
-        branchIndex: i,
+        id: genId('sn-'), label: n.label, description: n.description,
+        status: 'locked' as const, parentId: action.parentId, depth: 0, branchIndex: i,
       }))
-
       return {
         ...state,
         trees: state.trees.map(t => {
           if (t.id !== action.treeId) return t
           const parent = t.nodes.find(n => n.id === action.parentId)
           const depth = parent ? parent.depth + 1 : 0
-          const depthNodes = newNodes.map(n => ({ ...n, depth }))
-          return { ...t, nodes: [...t.nodes, ...depthNodes] }
+          return { ...t, nodes: [...t.nodes, ...newNodes.map(n => ({ ...n, depth }))] }
         }),
       }
     }
@@ -92,22 +74,14 @@ export function skillTreeReducer(state: SkillTreeState, action: SkillTreeAction)
           if (t.id !== action.treeId) return t
           const targetNode = t.nodes.find(n => n.id === action.nodeId)
           if (!targetNode) return t
-
           return {
             ...t,
             nodes: t.nodes.map(n => {
               if (n.id === action.nodeId) return { ...n, status: 'active' }
-              if (
-                n.parentId === targetNode.parentId &&
-                n.depth === targetNode.depth &&
-                n.id !== action.nodeId &&
-                n.status === 'locked'
-              ) {
+              if (n.parentId === targetNode.parentId && n.depth === targetNode.depth && n.id !== action.nodeId && n.status === 'locked')
                 return { ...n, status: 'skipped' }
-              }
-              if (n.id === targetNode.parentId && n.status === 'active') {
+              if (n.id === targetNode.parentId && n.status === 'active')
                 return { ...n, status: 'completed' }
-              }
               return n
             }),
           }
@@ -117,46 +91,22 @@ export function skillTreeReducer(state: SkillTreeState, action: SkillTreeAction)
     }
 
     case 'UNDO_PATH': {
-      // Undo: revert selected node to locked, siblings back to locked, parent back to active
-      // Also remove all descendants of the selected node
       return {
         ...state,
         trees: state.trees.map(t => {
           if (t.id !== action.treeId) return t
           const targetNode = t.nodes.find(n => n.id === action.nodeId)
           if (!targetNode || targetNode.status === 'locked') return t
-
-          // Find all descendant IDs to remove
           const descendantIds = new Set<string>()
-          const collectDescendants = (parentId: string) => {
-            for (const n of t.nodes) {
-              if (n.parentId === parentId) {
-                descendantIds.add(n.id)
-                collectDescendants(n.id)
-              }
-            }
-          }
-          collectDescendants(action.nodeId)
-
-          // Remove descendants, reset target and siblings
+          const collect = (pid: string) => { for (const n of t.nodes) { if (n.parentId === pid) { descendantIds.add(n.id); collect(n.id) } } }
+          collect(action.nodeId)
           const filtered = t.nodes.filter(n => !descendantIds.has(n.id))
           return {
             ...t,
             nodes: filtered.map(n => {
-              // Target → locked
               if (n.id === action.nodeId) return { ...n, status: 'locked' }
-              // Siblings → locked
-              if (
-                n.parentId === targetNode.parentId &&
-                n.depth === targetNode.depth &&
-                n.status === 'skipped'
-              ) {
-                return { ...n, status: 'locked' }
-              }
-              // Parent → active (if it was completed by this selection)
-              if (n.id === targetNode.parentId && n.status === 'completed') {
-                return { ...n, status: 'active' }
-              }
+              if (n.parentId === targetNode.parentId && n.depth === targetNode.depth && n.status === 'skipped') return { ...n, status: 'locked' }
+              if (n.id === targetNode.parentId && n.status === 'completed') return { ...n, status: 'active' }
               return n
             }),
           }
@@ -186,106 +136,97 @@ export function skillTreeReducer(state: SkillTreeState, action: SkillTreeAction)
     case 'LOAD_TREES':
       return { ...state, trees: action.trees }
 
-    // ===== Game Skill Tree =====
-    case 'CREATE_GAME_TREE': {
-      const gt: GameSkillTree = {
-        id: genId('gt-'),
-        name: action.name,
-        skills: [],
-        totalPoints: 30,
-        usedPoints: 0,
-        createdAt: Date.now(),
-      }
-      return { ...state, gameTrees: [...state.gameTrees, gt], activeGameTreeId: gt.id }
+    // ===== Flow Skill Tree (가로형) =====
+    case 'CREATE_FLOW_TREE': {
+      const ft: FlowTree = { id: genId('ft-'), name: action.name, nodes: [], createdAt: Date.now() }
+      return { ...state, flowTrees: [...state.flowTrees, ft], activeFlowTreeId: ft.id }
     }
 
-    case 'DELETE_GAME_TREE':
+    case 'DELETE_FLOW_TREE':
       return {
         ...state,
-        gameTrees: state.gameTrees.filter(t => t.id !== action.treeId),
-        activeGameTreeId: state.activeGameTreeId === action.treeId ? null : state.activeGameTreeId,
+        flowTrees: state.flowTrees.filter(t => t.id !== action.treeId),
+        activeFlowTreeId: state.activeFlowTreeId === action.treeId ? null : state.activeFlowTreeId,
       }
 
-    case 'SET_ACTIVE_GAME_TREE':
-      return { ...state, activeGameTreeId: action.treeId, selectedNodeId: null }
+    case 'SET_ACTIVE_FLOW_TREE':
+      return { ...state, activeFlowTreeId: action.treeId, selectedNodeId: null }
 
-    case 'ADD_GAME_SKILL': {
-      const skill: GameSkill = { id: genId('gs-'), ...action.skill }
+    case 'ADD_FLOW_NODE': {
+      // Add to main chain after specified node
       return {
         ...state,
-        gameTrees: state.gameTrees.map(t =>
-          t.id === action.treeId ? { ...t, skills: [...t.skills, skill] } : t
-        ),
+        flowTrees: state.flowTrees.map(t => {
+          if (t.id !== action.treeId) return t
+          const mainChain = t.nodes.filter(n => n.parentId === null).sort((a, b) => a.order - b.order)
+          let newOrder = 0
+          if (action.afterNodeId) {
+            const afterNode = mainChain.find(n => n.id === action.afterNodeId)
+            newOrder = afterNode ? afterNode.order + 1 : mainChain.length
+          } else {
+            newOrder = mainChain.length
+          }
+          // Shift existing nodes after this position
+          const shifted = t.nodes.map(n => {
+            if (n.parentId === null && n.order >= newOrder) return { ...n, order: n.order + 1 }
+            return n
+          })
+          const newNode: FlowNode = {
+            id: genId('fn-'), label: action.label, description: '', status: 'pending',
+            order: newOrder, parentId: null, tags: [],
+          }
+          return { ...t, nodes: [...shifted, newNode] }
+        }),
       }
     }
 
-    case 'LEVEL_UP_SKILL':
+    case 'ADD_FLOW_BRANCH': {
       return {
         ...state,
-        gameTrees: state.gameTrees.map(t => {
+        flowTrees: state.flowTrees.map(t => {
           if (t.id !== action.treeId) return t
-          const skill = t.skills.find(s => s.id === action.skillId)
-          if (!skill || skill.level >= skill.maxLevel) return t
-          // Check prerequisite
-          if (skill.parentId) {
-            const parent = t.skills.find(s => s.id === skill.parentId)
-            if (!parent || parent.level === 0) return t // parent not unlocked
+          const branches = t.nodes.filter(n => n.parentId === action.parentId)
+          const newBranch: FlowNode = {
+            id: genId('fn-'), label: action.label, description: '', status: 'pending',
+            order: branches.length, parentId: action.parentId, tags: [],
           }
-          if (t.usedPoints >= t.totalPoints) return t
-          return {
-            ...t,
-            usedPoints: t.usedPoints + 1,
-            skills: t.skills.map(s =>
-              s.id === action.skillId ? { ...s, level: (s.level + 1) as GameSkill['level'] } : s
-            ),
-          }
+          return { ...t, nodes: [...t.nodes, newBranch] }
+        }),
+      }
+    }
+
+    case 'UPDATE_FLOW_NODE':
+      return {
+        ...state,
+        flowTrees: state.flowTrees.map(t => {
+          if (t.id !== action.treeId) return t
+          return { ...t, nodes: t.nodes.map(n => n.id === action.nodeId ? { ...n, ...action.updates } : n) }
         }),
       }
 
-    case 'LEVEL_DOWN_SKILL':
+    case 'REMOVE_FLOW_NODE':
       return {
         ...state,
-        gameTrees: state.gameTrees.map(t => {
+        flowTrees: state.flowTrees.map(t => {
           if (t.id !== action.treeId) return t
-          const skill = t.skills.find(s => s.id === action.skillId)
-          if (!skill || skill.level <= 0) return t
-          // Check if any child depends on this
-          const hasDependent = t.skills.some(s => s.parentId === action.skillId && s.level > 0)
-          if (hasDependent && skill.level <= 1) return t
-          return {
-            ...t,
-            usedPoints: t.usedPoints - 1,
-            skills: t.skills.map(s =>
-              s.id === action.skillId ? { ...s, level: (s.level - 1) as GameSkill['level'] } : s
-            ),
-          }
+          // Remove node and its branches
+          const toRemove = new Set<string>([action.nodeId])
+          for (const n of t.nodes) { if (n.parentId === action.nodeId) toRemove.add(n.id) }
+          const filtered = t.nodes.filter(n => !toRemove.has(n.id))
+          // Re-order main chain
+          const main = filtered.filter(n => n.parentId === null).sort((a, b) => a.order - b.order)
+          const reordered = filtered.map(n => {
+            if (n.parentId !== null) return n
+            const idx = main.indexOf(n)
+            return { ...n, order: idx }
+          })
+          return { ...t, nodes: reordered }
         }),
+        selectedNodeId: state.selectedNodeId === action.nodeId ? null : state.selectedNodeId,
       }
 
-    case 'UPDATE_GAME_SKILL':
-      return {
-        ...state,
-        gameTrees: state.gameTrees.map(t => {
-          if (t.id !== action.treeId) return t
-          return { ...t, skills: t.skills.map(s => s.id === action.skillId ? { ...s, ...action.updates } : s) }
-        }),
-      }
-
-    case 'REMOVE_GAME_SKILL':
-      return {
-        ...state,
-        gameTrees: state.gameTrees.map(t => {
-          if (t.id !== action.treeId) return t
-          return {
-            ...t,
-            skills: t.skills.filter(s => s.id !== action.skillId),
-            usedPoints: t.usedPoints - (t.skills.find(s => s.id === action.skillId)?.level || 0),
-          }
-        }),
-      }
-
-    case 'LOAD_GAME_TREES':
-      return { ...state, gameTrees: action.trees }
+    case 'LOAD_FLOW_TREES':
+      return { ...state, flowTrees: action.trees }
 
     default:
       return state

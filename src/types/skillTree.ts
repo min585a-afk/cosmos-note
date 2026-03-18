@@ -9,7 +9,7 @@ export interface SkillNode {
   parentId: string | null
   depth: number
   branchIndex: number
-  graphNodeId?: string // link to graph view node
+  graphNodeId?: string
 }
 
 export interface SkillTree {
@@ -20,36 +20,32 @@ export interface SkillTree {
   createdAt: number
 }
 
-// ===== Game Skill Tree (스킬트리) =====
-export type SkillLevel = 0 | 1 | 2 | 3 | 4 | 5
+// ===== Flow Skill Tree (스킬트리) — 가로형 노드 체인 =====
+export type FlowNodeStatus = 'pending' | 'in-progress' | 'done'
 
-export interface GameSkill {
+export interface FlowNode {
   id: string
   label: string
   description: string
-  level: SkillLevel
-  maxLevel: SkillLevel
-  category: string
-  parentId: string | null  // prerequisite skill
-  x: number  // grid position
-  y: number
+  status: FlowNodeStatus
+  order: number          // position in main chain (0, 1, 2, ...)
+  parentId: string | null // null = main chain, string = branch of that node
+  tags: string[]
 }
 
-export interface GameSkillTree {
+export interface FlowTree {
   id: string
   name: string
-  skills: GameSkill[]
-  totalPoints: number
-  usedPoints: number
+  nodes: FlowNode[]
   createdAt: number
 }
 
 // ===== State =====
 export interface SkillTreeState {
   trees: SkillTree[]
-  gameTrees: GameSkillTree[]
+  flowTrees: FlowTree[]
   activeTreeId: string | null
-  activeGameTreeId: string | null
+  activeFlowTreeId: string | null
   selectedNodeId: string | null
   activeTab: 'analysis' | 'skill'
 }
@@ -68,13 +64,12 @@ export type SkillTreeAction =
   | { type: 'COMPLETE_NODE'; treeId: string; nodeId: string }
   | { type: 'UPDATE_SKILL_NODE'; treeId: string; nodeId: string; updates: Partial<Pick<SkillNode, 'label' | 'description'>> }
   | { type: 'LOAD_TREES'; trees: SkillTree[] }
-  // Game skill tree
-  | { type: 'CREATE_GAME_TREE'; name: string }
-  | { type: 'DELETE_GAME_TREE'; treeId: string }
-  | { type: 'SET_ACTIVE_GAME_TREE'; treeId: string | null }
-  | { type: 'ADD_GAME_SKILL'; treeId: string; skill: Omit<GameSkill, 'id'> }
-  | { type: 'LEVEL_UP_SKILL'; treeId: string; skillId: string }
-  | { type: 'LEVEL_DOWN_SKILL'; treeId: string; skillId: string }
-  | { type: 'UPDATE_GAME_SKILL'; treeId: string; skillId: string; updates: Partial<Pick<GameSkill, 'label' | 'description' | 'category'>> }
-  | { type: 'REMOVE_GAME_SKILL'; treeId: string; skillId: string }
-  | { type: 'LOAD_GAME_TREES'; trees: GameSkillTree[] }
+  // Flow skill tree
+  | { type: 'CREATE_FLOW_TREE'; name: string }
+  | { type: 'DELETE_FLOW_TREE'; treeId: string }
+  | { type: 'SET_ACTIVE_FLOW_TREE'; treeId: string | null }
+  | { type: 'ADD_FLOW_NODE'; treeId: string; label: string; afterNodeId: string | null }
+  | { type: 'ADD_FLOW_BRANCH'; treeId: string; parentId: string; label: string }
+  | { type: 'UPDATE_FLOW_NODE'; treeId: string; nodeId: string; updates: Partial<Pick<FlowNode, 'label' | 'description' | 'status' | 'tags'>> }
+  | { type: 'REMOVE_FLOW_NODE'; treeId: string; nodeId: string }
+  | { type: 'LOAD_FLOW_TREES'; trees: FlowTree[] }

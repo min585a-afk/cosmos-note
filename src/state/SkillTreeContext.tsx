@@ -15,7 +15,7 @@ function loadSaved(): SkillTreeState {
     return {
       ...initialSkillTreeState,
       trees: data.trees || [],
-      gameTrees: data.gameTrees || [],
+      flowTrees: data.flowTrees || [],
     }
   } catch {
     return initialSkillTreeState
@@ -32,11 +32,11 @@ export function SkillTreeProvider({ children }: { children: ReactNode }) {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({
           trees: state.trees,
-          gameTrees: state.gameTrees,
+          flowTrees: state.flowTrees,
         }))
       } catch { /* full */ }
     }, 500)
-  }, [state.trees, state.gameTrees])
+  }, [state.trees, state.flowTrees])
 
   return (
     <StateCtx.Provider value={state}>
