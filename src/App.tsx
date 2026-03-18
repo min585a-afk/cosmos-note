@@ -14,6 +14,7 @@ import { FloatingSearch } from './components/FloatingSearch'
 import { HoverPreview } from './components/HoverPreview'
 import { NoteView } from './components/NoteView'
 import { SkillTreeView } from './components/SkillTreeView'
+import { CalendarView } from './components/CalendarView'
 import './App.css'
 
 export type ViewMode = 'graph' | 'notes' | 'skilltree' | 'calendar'
@@ -57,7 +58,7 @@ function AppContent() {
   // ESC in notes/skilltree view → back to graph
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && (view === 'notes' || view === 'skilltree')) {
+      if (e.key === 'Escape' && view !== 'graph') {
         setView('graph')
       }
     }
@@ -82,6 +83,8 @@ function AppContent() {
           </div>
         ) : view === 'notes' ? (
           <NoteView onSwitchToGraph={handleSwitchToGraph} />
+        ) : view === 'calendar' ? (
+          <CalendarView />
         ) : (
           <SkillTreeView />
         )}

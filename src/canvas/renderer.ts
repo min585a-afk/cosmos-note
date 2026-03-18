@@ -2,8 +2,16 @@ import type { GraphNode } from '../types/graph'
 
 const TWO_PI = Math.PI * 2
 
+type ThemeName = 'cosmos' | 'dot' | 'light'
+
+function getTheme(): ThemeName {
+  const t = document.documentElement.getAttribute('data-theme')
+  if (t === 'dot' || t === 'light') return t
+  return 'cosmos'
+}
+
 function isLightTheme(): boolean {
-  return document.documentElement.getAttribute('data-theme') === 'light'
+  return getTheme() === 'light'
 }
 
 export function drawGrid(ctx: CanvasRenderingContext2D, w: number, h: number, scale: number) {
@@ -208,6 +216,100 @@ function drawStar(
   }
 }
 
+/**
+ * Dot theme: small colored dots, no glow/gradient
+ */
+function drawDotNode(
+  ctx: CanvasRenderingContext2D,
+  node: GraphNode,
+  isHovered: boolean,
+  isSelected: boolean,
+  isSearchMatch: boolean
+) {
+  const { x, y, color } = node
+  const isPlanet = node.radius >= 14
+  const baseR = isPlanet ? (isHovered ? 6 : isSelected ? 5.5 : 5) : (isHovered ? 4 : isSelected ? 3.5 : 3)
+
+  // Hover/select ring
+  if (isSelected || isSearchMatch) {
+    ctx.beginPath()
+    ctx.arc(x, y, baseR + 3, 0, TWO_PI)
+    ctx.strokeStyle = color
+    ctx.lineWidth = 1.5
+    ctx.globalAlpha = 0.6
+    ctx.stroke()
+    ctx.globalAlpha = 1
+  }
+
+  // Simple solid dot
+  ctx.beginPath()
+  ctx.arc(x, y, baseR, 0, TWO_PI)
+  ctx.fillStyle = color
+  ctx.fill()
+
+  // Hover highlight
+  if (isHovered) {
+    ctx.beginPath()
+    ctx.arc(x, y, baseR, 0, TWO_PI)
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)'
+    ctx.lineWidth = 1
+    ctx.stroke()
+  }
+}
+
+/**
+ * Light/basic theme: black filled circles, clean minimal style
+ */
+function drawBasicNode(
+  ctx: CanvasRenderingContext2D,
+  node: GraphNode,
+  isHovered: boolean,
+  isSelected: boolean,
+  isSearchMatch: boolean
+) {
+  const { x, y, color } = node
+  const [cr, cg, cb] = hexToRgb(color)
+  const isPlanet = node.radius >= 14
+  const baseR = isPlanet ? (isHovered ? 8 : isSelected ? 7.5 : 7) : (isHovered ? 5 : isSelected ? 4.5 : 4)
+
+  // Selected/search ring
+  if (isSelected || isSearchMatch) {
+    ctx.beginPath()
+    ctx.arc(x, y, baseR + 4, 0, TWO_PI)
+    ctx.strokeStyle = color
+    ctx.lineWidth = 2
+    ctx.globalAlpha = 0.5
+    ctx.stroke()
+    ctx.globalAlpha = 1
+  }
+
+  // Dark filled circle with colored border
+  ctx.beginPath()
+  ctx.arc(x, y, baseR, 0, TWO_PI)
+  ctx.fillStyle = node.description.trim() ? `rgba(${cr}, ${cg}, ${cb}, 0.15)` : 'rgba(30, 30, 50, 0.8)'
+  ctx.fill()
+  ctx.strokeStyle = color
+  ctx.lineWidth = isPlanet ? 2 : 1.5
+  ctx.stroke()
+
+  // Inner dot
+  if (node.description.trim()) {
+    ctx.beginPath()
+    ctx.arc(x, y, baseR * 0.35, 0, TWO_PI)
+    ctx.fillStyle = color
+    ctx.fill()
+  }
+
+  // Hover effect
+  if (isHovered) {
+    ctx.beginPath()
+    ctx.arc(x, y, baseR + 2, 0, TWO_PI)
+    ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, 0.3)`
+    ctx.lineWidth = 1
+    ctx.stroke()
+  }
+}
+
 export function drawNode(
   ctx: CanvasRenderingContext2D,
   node: GraphNode,
@@ -216,10 +318,19 @@ export function drawNode(
   time: number,
   isSearchMatch: boolean = false
 ) {
-  if (node.radius >= 14) {
-    drawPlanet(ctx, node, isHovered, isSelected, time, isSearchMatch)
+  const theme = getTheme()
+
+  if (theme === 'dot') {
+    drawDotNode(ctx, node, isHovered, isSelected, isSearchMatch)
+  } else if (theme === 'light') {
+    drawBasicNode(ctx, node, isHovered, isSelected, isSearchMatch)
   } else {
-    drawStar(ctx, node, isHovered, isSelected, time, isSearchMatch)
+    // Cosmos theme - original
+    if (node.radius >= 14) {
+      drawPlanet(ctx, node, isHovered, isSelected, time, isSearchMatch)
+    } else {
+      drawStar(ctx, node, isHovered, isSelected, time, isSearchMatch)
+    }
   }
 }
 

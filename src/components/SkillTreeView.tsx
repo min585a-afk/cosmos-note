@@ -197,13 +197,14 @@ function FlowSkillTreeView({ treeId }: { treeId: string }) {
                   </div>
                 )}
 
-                {/* Main node */}
+                {/* Main node - game stamp style */}
                 <div className={`flow-node ${isDone ? 'flow-node--done' : ''} ${prevAllDone && !isDone ? 'flow-node--next' : ''} ${isSelected ? 'flow-node--selected' : ''}`}
                   onClick={() => dispatch({ type: 'SET_SELECTED_NODE', nodeId: node.id })}>
-                  <div className={`flow-node__check ${isDone ? 'flow-node__check--on' : ''}`}
+                  <div className={`flow-node__stamp ${isDone ? 'flow-node__stamp--done' : ''} ${prevAllDone && !isDone ? 'flow-node__stamp--ready' : ''}`}
                     onClick={e => { e.stopPropagation(); toggleDone(node.id, node.status) }}
-                    title={isDone ? 'OFF' : 'ON'}>
-                    {isDone ? '✓' : ''}
+                    title={isDone ? '완료됨' : prevAllDone ? '클릭하여 찍기!' : '잠김'}>
+                    <span className="flow-node__stamp-icon">{isDone ? '✦' : prevAllDone && !isDone ? '◇' : '🔒'}</span>
+                    <span className="flow-node__stamp-num">{i + 1}</span>
                   </div>
                   <div className="flow-node__label">{node.label}</div>
                 </div>
@@ -217,9 +218,9 @@ function FlowSkillTreeView({ treeId }: { treeId: string }) {
                       return (
                         <div key={branch.id} className={`flow-branch ${brDone ? 'flow-branch--done' : ''} ${state.selectedNodeId === branch.id ? 'flow-branch--selected' : ''}`}
                           onClick={() => dispatch({ type: 'SET_SELECTED_NODE', nodeId: branch.id })}>
-                          <div className={`flow-branch__check ${brDone ? 'flow-branch__check--on' : ''}`}
+                          <div className={`flow-branch__stamp ${brDone ? 'flow-branch__stamp--done' : ''}`}
                             onClick={e => { e.stopPropagation(); toggleDone(branch.id, branch.status) }}>
-                            {brDone ? '✓' : ''}
+                            {brDone ? '✦' : '○'}
                           </div>
                           <span className="flow-branch__label">{branch.label}</span>
                         </div>
@@ -348,7 +349,7 @@ export function SkillTreeView() {
           <button className={`skilltree-tab ${tab === 'analysis' ? 'skilltree-tab--active' : ''}`}
             onClick={() => dispatch({ type: 'SET_TAB', tab: 'analysis' })}>🔍 분석트리</button>
           <button className={`skilltree-tab ${tab === 'skill' ? 'skilltree-tab--active' : ''}`}
-            onClick={() => dispatch({ type: 'SET_TAB', tab: 'skill' })}>🔗 스킬트리</button>
+            onClick={() => dispatch({ type: 'SET_TAB', tab: 'skill' })}>🎮 스킬트리</button>
         </div>
         <div className="skilltree-sidebar__header">
           <h3>{tab === 'analysis' ? '프로젝트 분석' : '작업 플로우'}</h3>
@@ -434,7 +435,7 @@ export function SkillTreeView() {
               <FlowSkillTreeView treeId={activeFlowTree.id} />
             </>
           ) : (
-            <div className="skilltree-placeholder"><div className="skilltree-placeholder__icon">🔗</div><h3>스킬트리</h3><p>작업 단계를 좌→우 가로형 노드로 만드세요.</p><p>각 노드에 자료, 스킬, 정보를 가지로 연결합니다.</p></div>
+            <div className="skilltree-placeholder"><div className="skilltree-placeholder__icon">🎮</div><h3>스킬트리</h3><p>스킬을 하나씩 찍어가며 레벨업하세요.</p><p>각 스킬에 하위 스킬을 연결할 수 있습니다.</p></div>
           )
         )}
       </div>

@@ -211,7 +211,7 @@ export function Sidebar({ view, onViewChange }: { view: ViewMode; onViewChange: 
               </button>
               <button
                 className={`nav-item ${view === 'calendar' ? 'nav-item--active' : ''}`}
-                onClick={() => { setCalendarOpen(!calendarOpen); onViewChange('skilltree') }}
+                onClick={() => { setCalendarOpen(!calendarOpen); onViewChange('calendar') }}
               >
                 <span className="nav-item__icon">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
