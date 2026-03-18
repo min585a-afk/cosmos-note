@@ -75,7 +75,7 @@ export function NodeTooltip({
   }
 
   const handleEditKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') saveEdit()
+    if (e.key === 'Enter' && !e.shiftKey) saveEdit()
     if (e.key === 'Escape') setEditingField(null)
   }
 
@@ -172,7 +172,8 @@ export function NodeTooltip({
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={handleEditKeyDown}
           onBlur={saveEdit}
-          rows={3}
+          rows={5}
+          placeholder="메모를 입력하세요... (Shift+Enter: 줄바꿈)"
         />
       ) : (
         <div
@@ -180,7 +181,7 @@ export function NodeTooltip({
           onClick={() => startEdit('description')}
           title="클릭하여 수정"
         >
-          {node.description || '내용을 적으면 색상이 활성화됩니다...'}
+          {node.description || '클릭하여 메모를 작성하세요. 내용을 적으면 색상이 활성화됩니다.'}
         </div>
       )}
 
@@ -209,7 +210,7 @@ export function NodeTooltip({
       </div>
 
       {/* Backlinks / Connected nodes */}
-      {connectedNodes.length > 0 && (
+      {connectedNodes.length > 0 ? (
         <div className="node-tooltip__backlinks">
           <div className="node-tooltip__backlinks-label">연결된 노드</div>
           <div className="node-tooltip__backlinks-list">
@@ -224,6 +225,10 @@ export function NodeTooltip({
               </button>
             ))}
           </div>
+        </div>
+      ) : (
+        <div className="node-tooltip__no-links">
+          연결된 노트가 없습니다. 태그나 [[위키링크]]를 추가하면 자동으로 연결됩니다.
         </div>
       )}
 

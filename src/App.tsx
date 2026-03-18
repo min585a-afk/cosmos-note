@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import { GraphProvider, useGraphDispatch } from './state/GraphContext'
+import { SkillTreeProvider } from './state/SkillTreeContext'
 import { CosmosBg } from './components/CosmosBg'
 import { Sidebar } from './components/Sidebar'
 import { Header } from './components/Header'
@@ -10,9 +11,10 @@ import { BranchInput } from './components/BranchInput'
 import { NodeCreator } from './components/NodeCreator'
 import { FloatingSearch } from './components/FloatingSearch'
 import { NoteView } from './components/NoteView'
+import { SkillTreeView } from './components/SkillTreeView'
 import './App.css'
 
-export type ViewMode = 'graph' | 'notes'
+export type ViewMode = 'graph' | 'notes' | 'skilltree'
 
 function AppContent() {
   const mainRef = useRef<HTMLDivElement>(null)
@@ -49,10 +51,10 @@ function AppContent() {
     setView('notes')
   }, [dispatch])
 
-  // ESC in notes view → back to graph
+  // ESC in notes/skilltree view → back to graph
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && view === 'notes') {
+      if (e.key === 'Escape' && (view === 'notes' || view === 'skilltree')) {
         setView('graph')
       }
     }
@@ -74,8 +76,10 @@ function AppContent() {
             <NodeCreator onReheat={handleReheat} />
             <FloatingSearch />
           </div>
-        ) : (
+        ) : view === 'notes' ? (
           <NoteView onSwitchToGraph={handleSwitchToGraph} />
+        ) : (
+          <SkillTreeView />
         )}
         <StatusBar />
       </main>
@@ -86,7 +90,9 @@ function AppContent() {
 function App() {
   return (
     <GraphProvider>
-      <AppContent />
+      <SkillTreeProvider>
+        <AppContent />
+      </SkillTreeProvider>
     </GraphProvider>
   )
 }

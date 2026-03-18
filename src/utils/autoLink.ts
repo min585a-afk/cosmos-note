@@ -55,11 +55,11 @@ function calculateSimilarity(a: Set<string>, b: Set<string>): number {
   let matches = 0
   for (const word of a) {
     if (b.has(word)) matches++
-    // Partial match (substring) for Korean words
+    // Partial match (substring) only for Korean words (3+ chars)
     for (const bWord of b) {
-      if (word !== bWord && word.length >= 2 && bWord.length >= 2) {
+      if (word !== bWord && word.length >= 3 && bWord.length >= 3) {
         if (word.includes(bWord) || bWord.includes(word)) {
-          matches += 0.7
+          matches += 0.5
         }
       }
     }
@@ -147,10 +147,7 @@ export function findAutoLinks(
     const existingKeywords = extractKeywords(node)
     let score = calculateSimilarity(newKeywords, existingKeywords)
 
-    // Bonus for same type
-    if (node.type === newNode.type) score += 0.3
-
-    // Bonus for shared tags
+    // Bonus for shared tags (strong signal — intentional categorization)
     const sharedTags = newNode.tags.filter(t => node.tags.includes(t))
     score += sharedTags.length * 2.5
 
@@ -161,7 +158,7 @@ export function findAutoLinks(
       if (nl.includes(ol) || ol.includes(nl)) score += 2
     }
 
-    if (score >= 1.2) {
+    if (score >= 2.5) {
       scored.push({ node, score })
     }
   }

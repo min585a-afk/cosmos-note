@@ -75,6 +75,24 @@ export function Sidebar({ view, onViewChange }: { view: ViewMode; onViewChange: 
             Connections
             <span className="nav-item__count">{edges.length}</span>
           </button>
+          <button
+            className={`nav-item ${view === 'skilltree' ? 'nav-item--active' : ''}`}
+            onClick={() => onViewChange('skilltree')}
+          >
+            <span className="nav-item__icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="4" r="2" />
+                <circle cx="6" cy="12" r="2" />
+                <circle cx="18" cy="12" r="2" />
+                <circle cx="12" cy="20" r="2" />
+                <line x1="12" y1="6" x2="6" y2="10" />
+                <line x1="12" y1="6" x2="18" y2="10" />
+                <line x1="6" y1="14" x2="12" y2="18" />
+                <line x1="18" y1="14" x2="12" y2="18" />
+              </svg>
+            </span>
+            Skill Tree
+          </button>
         </div>
 
         <div className="nav-section">

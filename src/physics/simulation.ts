@@ -41,12 +41,18 @@ export function tick(nodes: GraphNode[], edges: GraphEdge[], alpha: number): voi
     const target = nodeMap.get(edge.target)
     if (!source || !target) continue
 
+    // Planet-to-star edges use shorter spring → branches cluster near parent
+    const isPlanetStar =
+      (source.radius >= 14 && target.radius < 14) ||
+      (target.radius >= 14 && source.radius < 14)
+    const springLen = isPlanetStar ? 120 : SPRING_LENGTH
+
     let dx = target.x - source.x
     let dy = target.y - source.y
     let dist = Math.sqrt(dx * dx + dy * dy)
     if (dist < 1) dist = 1
 
-    const displacement = dist - SPRING_LENGTH
+    const displacement = dist - springLen
     const force = displacement * SPRING_STRENGTH * alpha
     const fx = (dx / dist) * force
     const fy = (dy / dist) * force
