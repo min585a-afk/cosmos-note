@@ -1,50 +1,52 @@
 import type { GraphNode, GraphEdge, NodeType } from '../types/graph'
 import { createNode, generateId } from '../state/graphReducer'
 
-interface TopicTemplate {
+interface BranchTemplate {
   label: string
   type: NodeType
   description: string
 }
 
-// Generate contextual sub-topics based on the input
-function generateSubTopics(topic: string): TopicTemplate[] {
+// Generate analytical/questioning sub-nodes that help explore the topic
+function generateAnalyticalBranches(topic: string): BranchTemplate[] {
   const lower = topic.toLowerCase()
 
-  // Question patterns → generate answer-style branches
-  if (lower.startsWith('how') || lower.includes('어떻게') || lower.includes('방법')) {
+  // Image/creative requests
+  if (lower.includes('이미지') || lower.includes('그림') || lower.includes('디자인') || lower.includes('만들')) {
     return [
-      { label: '핵심 개념 정리', type: 'idea', description: `${topic}에 대한 핵심 개념` },
-      { label: '실행 단계', type: 'task', description: `실천할 수 있는 구체적인 단계` },
-      { label: '참고 자료', type: 'personal', description: `관련 자료 및 레퍼런스` },
-      { label: '주의할 점', type: 'work', description: `피해야 할 실수와 주의사항` },
+      { label: '어떤 스타일을 원하는걸까?', type: 'idea', description: '사실적? 일러스트? 미니멀?' },
+      { label: '용도는 무엇일까?', type: 'work', description: '프레젠테이션? SNS? 인쇄?' },
+      { label: '핵심 요소는?', type: 'task', description: '꼭 포함되어야 할 것들' },
+      { label: '참고할 레퍼런스가 있을까?', type: 'personal', description: '비슷한 느낌의 예시' },
     ]
   }
 
-  if (lower.startsWith('why') || lower.includes('왜') || lower.includes('이유')) {
+  // Problem/worry patterns
+  if (lower.includes('어떻게') || lower.includes('방법') || lower.includes('하고싶')) {
     return [
-      { label: '근본 원인', type: 'idea', description: `근본적인 원인 분석` },
-      { label: '배경 맥락', type: 'work', description: `이 질문의 배경과 맥락` },
-      { label: '영향과 결과', type: 'task', description: `이것이 미치는 영향` },
-      { label: '해결 방향', type: 'personal', description: `가능한 해결 방향` },
+      { label: '현재 상황은 어떤가?', type: 'work', description: '지금 상태를 정리해보자' },
+      { label: '목표가 뭘까?', type: 'idea', description: '달성하고 싶은 결과' },
+      { label: '장애물은?', type: 'task', description: '방해가 되는 것들' },
+      { label: '바로 할 수 있는 건?', type: 'personal', description: '지금 당장 시작할 수 있는 것' },
     ]
   }
 
-  if (lower.startsWith('what') || lower.includes('무엇') || lower.includes('뭐')) {
+  // Decision/choice patterns
+  if (lower.includes('할까') || lower.includes('좋을까') || lower.includes('vs') || lower.includes('선택')) {
     return [
-      { label: '정의와 개념', type: 'idea', description: `핵심 정의` },
-      { label: '특징과 장점', type: 'work', description: `주요 특징` },
-      { label: '활용 사례', type: 'task', description: `실제 활용 사례` },
-      { label: '관련 주제', type: 'personal', description: `연관된 다른 주제` },
+      { label: '각 선택지의 장점은?', type: 'idea', description: '좋은 점 정리' },
+      { label: '리스크는 뭐가 있을까?', type: 'task', description: '잠재적 위험 요소' },
+      { label: '지금 가장 중요한 기준은?', type: 'work', description: '우선순위 판단 기준' },
+      { label: '나중에 후회하지 않을 선택은?', type: 'personal', description: '장기적 관점' },
     ]
   }
 
-  // Default: general topic exploration
+  // Default: analytical exploration
   return [
-    { label: '핵심 포인트', type: 'idea', description: `${topic}의 핵심` },
-    { label: '실행 계획', type: 'task', description: `실천 가능한 계획` },
-    { label: '아이디어', type: 'idea', description: `관련 아이디어` },
-    { label: '메모', type: 'personal', description: `추가 생각과 메모` },
+    { label: '이것의 핵심은 뭘까?', type: 'idea', description: '가장 중요한 포인트' },
+    { label: '왜 이것을 생각하게 됐을까?', type: 'personal', description: '동기와 맥락' },
+    { label: '다음 단계는?', type: 'task', description: '구체적인 액션' },
+    { label: '관련된 다른 생각은?', type: 'work', description: '연결될 수 있는 것들' },
   ]
 }
 
@@ -68,14 +70,14 @@ export function generateBranches(
   })
   nodes.push(root)
 
-  // Generate contextual branches
-  const subTopics = generateSubTopics(topic)
-  const branchCount = 3 + Math.floor(Math.random() * 2) // 3-4 branches
+  // Generate analytical branches
+  const branches = generateAnalyticalBranches(topic)
+  const branchCount = 3 + Math.floor(Math.random() * 2) // 3-4
   const angleStep = (Math.PI * 2) / branchCount
   const branchRadius = 140
 
-  for (let i = 0; i < Math.min(branchCount, subTopics.length); i++) {
-    const template = subTopics[i]
+  for (let i = 0; i < Math.min(branchCount, branches.length); i++) {
+    const template = branches[i]
     const angle = angleStep * i - Math.PI / 2
     const bx = centerX + Math.cos(angle) * branchRadius + (Math.random() - 0.5) * 30
     const by = centerY + Math.sin(angle) * branchRadius + (Math.random() - 0.5) * 30

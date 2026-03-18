@@ -44,6 +44,7 @@ export interface GraphState {
   selectedNodeId: string | null
   hoveredNodeId: string | null
   simulationAlpha: number
+  searchQuery: string
 }
 
 export type GraphAction =
@@ -61,10 +62,12 @@ export type GraphAction =
   | { type: 'SET_ALPHA'; alpha: number }
   | { type: 'BATCH_ADD'; nodes: GraphNode[]; edges: GraphEdge[] }
   | { type: 'UPDATE_NODE_LABEL'; nodeId: string; label: string }
+  | { type: 'UPDATE_NODE'; nodeId: string; updates: Partial<Pick<GraphNode, 'label' | 'description' | 'tags' | 'type' | 'color'>> }
+  | { type: 'SET_SEARCH'; query: string }
 
 export const NODE_COLORS: Record<NodeType, string> = {
-  work: '#7c6aff',
-  personal: '#4ecaff',
-  task: '#ff6eb4',
-  idea: '#50e3a4',
+  work: '#a78bfa',
+  personal: '#38bdf8',
+  task: '#fb7185',
+  idea: '#34d399',
 }

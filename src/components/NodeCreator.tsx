@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useGraphState, useGraphDispatch } from '../state/GraphContext'
-import { generateBranches } from '../utils/generateBranches'
+import { createNode } from '../state/graphReducer'
 
 export function NodeCreator({ onReheat }: { onReheat: () => void }) {
   const state = useGraphState()
@@ -15,7 +15,6 @@ export function NodeCreator({ onReheat }: { onReheat: () => void }) {
   useEffect(() => {
     if (isActive) {
       setValue('')
-      // Delay focus to avoid immediate blur from canvas click
       const t = setTimeout(() => inputRef.current?.focus(), 100)
       return () => clearTimeout(t)
     }
@@ -30,7 +29,6 @@ export function NodeCreator({ onReheat }: { onReheat: () => void }) {
   }, [dispatch])
 
   const handleBlur = useCallback(() => {
-    // Delay to allow form submit to fire first
     blurTimeoutRef.current = window.setTimeout(handleCancel, 200)
   }, [handleCancel])
 
@@ -44,9 +42,17 @@ export function NodeCreator({ onReheat }: { onReheat: () => void }) {
     const text = value.trim()
     if (!text) return
 
-    const { nodes, edges } = generateBranches(text, worldX, worldY)
-    dispatch({ type: 'BATCH_ADD', nodes, edges })
-    dispatch({ type: 'SET_SELECTED', nodeId: nodes[0].id })
+    // Create a single node only — no auto-branches
+    const newNode = createNode({
+      label: text,
+      type: 'idea',
+      x: worldX,
+      y: worldY,
+      description: '',
+      radius: 14,
+    })
+    dispatch({ type: 'ADD_NODE', node: newNode })
+    dispatch({ type: 'SET_SELECTED', nodeId: newNode.id })
     dispatch({ type: 'SET_INTERACTION', interaction: { type: 'idle' } })
     onReheat()
   }
@@ -58,7 +64,6 @@ export function NodeCreator({ onReheat }: { onReheat: () => void }) {
     }
   }
 
-  // Position the input near the click point
   const style: React.CSSProperties = {
     position: 'absolute',
     left: `${Math.min(screenX, (window.innerWidth - 360))}px`,
@@ -77,7 +82,7 @@ export function NodeCreator({ onReheat }: { onReheat: () => void }) {
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
-          placeholder="질문, 고민, 메모를 적어보세요..."
+          placeholder="생각, 질문, 메모를 적어보세요..."
           className="node-creator__input"
           autoComplete="off"
         />

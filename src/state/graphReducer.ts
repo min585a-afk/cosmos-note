@@ -52,6 +52,7 @@ export const initialState: GraphState = {
   selectedNodeId: null,
   hoveredNodeId: null,
   simulationAlpha: 1.0,
+  searchQuery: '',
 }
 
 export function graphReducer(state: GraphState, action: GraphAction): GraphState {
@@ -137,6 +138,20 @@ export function graphReducer(state: GraphState, action: GraphAction): GraphState
           n.id === action.nodeId ? { ...n, label: action.label } : n
         ),
       }
+
+    case 'UPDATE_NODE':
+      return {
+        ...state,
+        nodes: state.nodes.map((n) => {
+          if (n.id !== action.nodeId) return n
+          const updated = { ...n, ...action.updates }
+          if (action.updates.type) updated.color = COLORS[action.updates.type]
+          return updated
+        }),
+      }
+
+    case 'SET_SEARCH':
+      return { ...state, searchQuery: action.query }
 
     default:
       return state

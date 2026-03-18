@@ -20,12 +20,14 @@ export function GraphCanvas({ reheatRef }: { reheatRef?: MutableRefObject<(() =>
   const hoveredRef = useRef(state.hoveredNodeId)
   const selectedRef = useRef(state.selectedNodeId)
   const interactionRef = useRef(state.interaction)
+  const searchRef = useRef(state.searchQuery)
 
   useEffect(() => { viewportRef.current = state.viewport }, [state.viewport])
   useEffect(() => { edgesRef.current = state.edges }, [state.edges])
   useEffect(() => { hoveredRef.current = state.hoveredNodeId }, [state.hoveredNodeId])
   useEffect(() => { selectedRef.current = state.selectedNodeId }, [state.selectedNodeId])
   useEffect(() => { interactionRef.current = state.interaction }, [state.interaction])
+  useEffect(() => { searchRef.current = state.searchQuery }, [state.searchQuery])
 
   // Expose reheat to parent
   useEffect(() => {
@@ -105,14 +107,20 @@ export function GraphCanvas({ reheatRef }: { reheatRef?: MutableRefObject<(() =>
       }
     }
 
+    // Search matching
+    const query = searchRef.current.toLowerCase()
+    const searchMatchIds = query
+      ? new Set(liveNodes.filter(n => n.label.toLowerCase().includes(query)).map(n => n.id))
+      : new Set<string>()
+
     // Nodes
     for (const node of liveNodes) {
-      drawNode(ctx, node, node.id === hoveredNodeId, node.id === selectedNodeId, time)
+      drawNode(ctx, node, node.id === hoveredNodeId, node.id === selectedNodeId, time, searchMatchIds.has(node.id))
     }
 
     // Labels
     for (const node of liveNodes) {
-      drawLabel(ctx, node, node.id === hoveredNodeId, node.id === selectedNodeId, time)
+      drawLabel(ctx, node, node.id === hoveredNodeId, node.id === selectedNodeId, time, searchMatchIds.has(node.id))
     }
 
     animRef.current = requestAnimationFrame(render)

@@ -38,7 +38,7 @@ function AppContent() {
         <Header />
         <div className="canvas-wrapper">
           <GraphCanvas reheatRef={reheatRef} />
-          <NodeTooltip containerWidth={size.w} containerHeight={size.h} />
+          <NodeTooltip containerWidth={size.w} containerHeight={size.h} onReheat={handleReheat} />
           <BranchInput containerWidth={size.w} containerHeight={size.h} onReheat={handleReheat} />
           <NodeCreator onReheat={handleReheat} />
         </div>
