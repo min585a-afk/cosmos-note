@@ -66,13 +66,15 @@ export function drawNode(
   // Obsidian-style: simple filled circle, size varies by state
   const r = isHovered ? 7 : isSelected ? 6 : 4.5
 
-  // Subtle outer ring on hover/select
-  if (isHovered || isSelected) {
-    ctx.beginPath()
-    ctx.arc(x, y, r + 4, 0, TWO_PI)
-    ctx.fillStyle = color + '20'
-    ctx.fill()
-  }
+  // Soft glow around node (color-matched)
+  const glowR = isHovered ? r + 14 : isSelected ? r + 12 : r + 8
+  const glow = ctx.createRadialGradient(x, y, r, x, y, glowR)
+  glow.addColorStop(0, color + '35')
+  glow.addColorStop(1, color + '00')
+  ctx.beginPath()
+  ctx.arc(x, y, glowR, 0, TWO_PI)
+  ctx.fillStyle = glow
+  ctx.fill()
 
   // Main circle - solid color fill
   ctx.beginPath()
