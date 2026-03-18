@@ -14,6 +14,19 @@ export function GraphCanvas({ reheatRef }: { reheatRef?: MutableRefObject<(() =>
   const { nodesRef, reheat } = useSimulation()
   const interactions = useCanvasInteraction(canvasRef, nodesRef, reheat)
 
+  // Refs to decouple render loop from React state
+  const viewportRef = useRef(state.viewport)
+  const edgesRef = useRef(state.edges)
+  const hoveredRef = useRef(state.hoveredNodeId)
+  const selectedRef = useRef(state.selectedNodeId)
+  const interactionRef = useRef(state.interaction)
+
+  useEffect(() => { viewportRef.current = state.viewport }, [state.viewport])
+  useEffect(() => { edgesRef.current = state.edges }, [state.edges])
+  useEffect(() => { hoveredRef.current = state.hoveredNodeId }, [state.hoveredNodeId])
+  useEffect(() => { selectedRef.current = state.selectedNodeId }, [state.selectedNodeId])
+  useEffect(() => { interactionRef.current = state.interaction }, [state.interaction])
+
   // Expose reheat to parent
   useEffect(() => {
     if (reheatRef) reheatRef.current = reheat
@@ -41,7 +54,7 @@ export function GraphCanvas({ reheatRef }: { reheatRef?: MutableRefObject<(() =>
     return () => obs.disconnect()
   }, [])
 
-  // Render loop
+  // Render loop - stable callback, reads from refs only
   const render = useCallback(() => {
     const canvas = canvasRef.current
     const ctx = canvas?.getContext('2d')
@@ -52,27 +65,31 @@ export function GraphCanvas({ reheatRef }: { reheatRef?: MutableRefObject<(() =>
     const h = canvas.height / dpr
     const time = performance.now()
 
+    const viewport = viewportRef.current
+    const edges = edgesRef.current
+    const hoveredNodeId = hoveredRef.current
+    const selectedNodeId = selectedRef.current
+    const interaction = interactionRef.current
+
     // Clear
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     ctx.clearRect(0, 0, w, h)
 
-    // Apply viewport with center offset (include DPR scaling)
-    const vpX = state.viewport.x + w / 2
-    const vpY = state.viewport.y + h / 2
-    const s = state.viewport.scale
+    // Apply viewport with center offset
+    const vpX = viewport.x + w / 2
+    const vpY = viewport.y + h / 2
+    const s = viewport.scale
     ctx.setTransform(dpr * s, 0, 0, dpr * s, dpr * vpX, dpr * vpY)
 
-    const vp = { ...state.viewport, x: vpX, y: vpY }
-
     // Grid
-    drawGrid(ctx, w / vp.scale + 200, h / vp.scale + 200, vp.scale)
+    drawGrid(ctx, w / s + 200, h / s + 200, s)
 
     // Get live node positions from simulation ref
     const liveNodes = nodesRef.current
     const nodeMap = new Map(liveNodes.map((n) => [n.id, n]))
 
     // Edges
-    for (const edge of state.edges) {
+    for (const edge of edges) {
       const src = nodeMap.get(edge.source)
       const tgt = nodeMap.get(edge.target)
       if (src && tgt) {
@@ -81,37 +98,25 @@ export function GraphCanvas({ reheatRef }: { reheatRef?: MutableRefObject<(() =>
     }
 
     // Draft edge
-    if (state.interaction.type === 'creating-edge') {
-      const source = nodeMap.get(state.interaction.sourceId)
+    if (interaction.type === 'creating-edge') {
+      const source = nodeMap.get(interaction.sourceId)
       if (source) {
-        drawDraftEdge(ctx, source.x, source.y, state.interaction.currentX, state.interaction.currentY)
+        drawDraftEdge(ctx, source.x, source.y, interaction.currentX, interaction.currentY)
       }
     }
 
     // Nodes
     for (const node of liveNodes) {
-      drawNode(
-        ctx,
-        node,
-        node.id === state.hoveredNodeId,
-        node.id === state.selectedNodeId,
-        time
-      )
+      drawNode(ctx, node, node.id === hoveredNodeId, node.id === selectedNodeId, time)
     }
 
     // Labels
     for (const node of liveNodes) {
-      drawLabel(
-        ctx,
-        node,
-        node.id === state.hoveredNodeId,
-        node.id === state.selectedNodeId,
-        time
-      )
+      drawLabel(ctx, node, node.id === hoveredNodeId, node.id === selectedNodeId, time)
     }
 
     animRef.current = requestAnimationFrame(render)
-  }, [state, nodesRef])
+  }, [nodesRef])
 
   useEffect(() => {
     animRef.current = requestAnimationFrame(render)

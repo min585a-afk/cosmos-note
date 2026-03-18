@@ -25,9 +25,9 @@ function generateStars(count: number, size: 'sm' | 'md' | 'lg') {
 export function CosmosBg() {
   const stars = useMemo(
     () => [
-      ...generateStars(200, 'sm'),
-      ...generateStars(80, 'md'),
-      ...generateStars(30, 'lg'),
+      ...generateStars(50, 'sm'),
+      ...generateStars(20, 'md'),
+      ...generateStars(10, 'lg'),
     ],
     []
   )

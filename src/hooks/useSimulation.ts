@@ -9,7 +9,7 @@ export function useSimulation() {
 
   const nodesRef = useRef<GraphNode[]>([])
   const alphaRef = useRef(simulationAlpha)
-  const frameRef = useRef(0)
+  const edgesRef = useRef(edges)
   const runningRef = useRef(false)
 
   // Sync nodes from state into mutable ref
@@ -18,7 +18,6 @@ export function useSimulation() {
     nodesRef.current = nodes.map((n) => {
       const existing = refMap.get(n.id)
       if (existing) {
-        // Keep physics state, sync pinned state
         existing.fx = n.fx
         existing.fy = n.fy
         if (n.fx !== null) existing.x = n.fx
@@ -33,6 +32,10 @@ export function useSimulation() {
       return { ...n }
     })
   }, [nodes])
+
+  useEffect(() => {
+    edgesRef.current = edges
+  }, [edges])
 
   useEffect(() => {
     alphaRef.current = simulationAlpha
@@ -57,21 +60,17 @@ export function useSimulation() {
     const alpha = alphaRef.current
     if (alpha < ALPHA_MIN) {
       runningRef.current = false
+      // Only sync positions once when simulation settles
       syncToState()
       return
     }
 
-    tick(nodesRef.current, edges, alpha)
+    tick(nodesRef.current, edgesRef.current, alpha)
     alphaRef.current = Math.max(alpha - ALPHA_DECAY, 0)
 
-    // Sync to React state every 3 frames
-    if (frameRef.current++ % 3 === 0) {
-      syncToState()
-      dispatch({ type: 'SET_ALPHA', alpha: alphaRef.current })
-    }
-
+    // No dispatches during simulation - canvas reads from nodesRef directly
     requestAnimationFrame(loop)
-  }, [edges, syncToState, dispatch])
+  }, [syncToState])
 
   const start = useCallback(() => {
     if (runningRef.current) return

@@ -56,15 +56,17 @@ export const initialState: GraphState = {
 
 export function graphReducer(state: GraphState, action: GraphAction): GraphState {
   switch (action.type) {
-    case 'UPDATE_POSITIONS':
+    case 'UPDATE_POSITIONS': {
+      const posMap = new Map(action.positions.map((p) => [p.id, p]))
       return {
         ...state,
         nodes: state.nodes.map((node) => {
-          const pos = action.positions.find((p) => p.id === node.id)
+          const pos = posMap.get(node.id)
           if (!pos) return node
           return { ...node, x: pos.x, y: pos.y, vx: pos.vx, vy: pos.vy }
         }),
       }
+    }
 
     case 'ADD_NODE':
       return { ...state, nodes: [...state.nodes, action.node] }
