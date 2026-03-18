@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import { GraphProvider, useGraphDispatch } from './state/GraphContext'
 import { SkillTreeProvider } from './state/SkillTreeContext'
+import { ThemeProvider, useTheme } from './state/ThemeContext'
 import { CosmosBg } from './components/CosmosBg'
 import { Sidebar } from './components/Sidebar'
 import { Header } from './components/Header'
@@ -10,13 +11,15 @@ import { NodeTooltip } from './components/NodeTooltip'
 import { BranchInput } from './components/BranchInput'
 import { NodeCreator } from './components/NodeCreator'
 import { FloatingSearch } from './components/FloatingSearch'
+import { HoverPreview } from './components/HoverPreview'
 import { NoteView } from './components/NoteView'
 import { SkillTreeView } from './components/SkillTreeView'
 import './App.css'
 
-export type ViewMode = 'graph' | 'notes' | 'skilltree'
+export type ViewMode = 'graph' | 'notes' | 'skilltree' | 'calendar'
 
 function AppContent() {
+  const { theme } = useTheme()
   const mainRef = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ w: 0, h: 0 })
   const [view, setView] = useState<ViewMode>('graph')
@@ -64,7 +67,7 @@ function AppContent() {
 
   return (
     <div className="app">
-      <CosmosBg />
+      {theme === 'cosmos' && <CosmosBg />}
       <Sidebar view={view} onViewChange={setView} />
       <main className="main" ref={mainRef}>
         <Header onReheat={handleReheat} />
@@ -72,6 +75,7 @@ function AppContent() {
           <div className="canvas-wrapper">
             <GraphCanvas reheatRef={reheatRef} onOpenNote={handleOpenNote} />
             <NodeTooltip containerWidth={size.w} containerHeight={size.h} onReheat={handleReheat} />
+            <HoverPreview containerWidth={size.w} containerHeight={size.h} />
             <BranchInput containerWidth={size.w} containerHeight={size.h} onReheat={handleReheat} />
             <NodeCreator onReheat={handleReheat} />
             <FloatingSearch />
@@ -89,11 +93,13 @@ function AppContent() {
 
 function App() {
   return (
-    <GraphProvider>
-      <SkillTreeProvider>
-        <AppContent />
-      </SkillTreeProvider>
-    </GraphProvider>
+    <ThemeProvider>
+      <GraphProvider>
+        <SkillTreeProvider>
+          <AppContent />
+        </SkillTreeProvider>
+      </GraphProvider>
+    </ThemeProvider>
   )
 }
 

@@ -2,11 +2,16 @@ import type { GraphNode } from '../types/graph'
 
 const TWO_PI = Math.PI * 2
 
+function isLightTheme(): boolean {
+  return document.documentElement.getAttribute('data-theme') === 'light'
+}
+
 export function drawGrid(ctx: CanvasRenderingContext2D, w: number, h: number, scale: number) {
   const spacing = 40
   const dotRadius = 0.8
   const alpha = Math.min(0.15, 0.08 / Math.max(scale, 0.3))
-  ctx.fillStyle = `rgba(167, 139, 250, ${alpha})`
+  const light = isLightTheme()
+  ctx.fillStyle = light ? `rgba(100, 80, 180, ${alpha * 1.5})` : `rgba(167, 139, 250, ${alpha})`
 
   const startX = Math.floor(-w / spacing) * spacing - spacing
   const startY = Math.floor(-h / spacing) * spacing - spacing
@@ -32,9 +37,13 @@ export function drawEdge(
   ctx.beginPath()
   ctx.moveTo(source.x, source.y)
   ctx.lineTo(target.x, target.y)
-  // White edges — thinner for star-to-star, slightly thicker for planet connections
   const isPlanetEdge = source.radius >= 14 || target.radius >= 14
-  ctx.strokeStyle = isPlanetEdge ? 'rgba(255, 255, 255, 0.18)' : 'rgba(255, 255, 255, 0.10)'
+  const light = isLightTheme()
+  if (light) {
+    ctx.strokeStyle = isPlanetEdge ? 'rgba(80, 60, 140, 0.25)' : 'rgba(80, 60, 140, 0.15)'
+  } else {
+    ctx.strokeStyle = isPlanetEdge ? 'rgba(255, 255, 255, 0.18)' : 'rgba(255, 255, 255, 0.10)'
+  }
   ctx.lineWidth = isPlanetEdge ? 1 : 0.6
   ctx.stroke()
 }
@@ -128,7 +137,7 @@ function drawPlanet(
     ctx.beginPath()
     ctx.arc(x, y, baseR + 3, 0, TWO_PI)
     ctx.setLineDash([3, 3])
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)'
+    ctx.strokeStyle = isLightTheme() ? 'rgba(80, 60, 140, 0.2)' : 'rgba(255, 255, 255, 0.15)'
     ctx.lineWidth = 0.6
     ctx.stroke()
     ctx.setLineDash([])
@@ -192,7 +201,7 @@ function drawStar(
     ctx.beginPath()
     ctx.arc(x, y, r + 2, 0, TWO_PI)
     ctx.setLineDash([2, 2])
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'
+    ctx.strokeStyle = isLightTheme() ? 'rgba(80, 60, 140, 0.15)' : 'rgba(255, 255, 255, 0.1)'
     ctx.lineWidth = 0.4
     ctx.stroke()
     ctx.setLineDash([])
@@ -225,13 +234,15 @@ export function drawLabel(
   const showLabel = isHovered || isSelected || isSearchMatch
   const isPlanet = node.radius >= 14
 
+  const light = isLightTheme()
+
   if (isPlanet) {
     const fontSize = showLabel ? 11.5 : 10
     const weight = showLabel ? '600' : '500'
     ctx.font = `${weight} ${fontSize}px 'Pretendard Variable', system-ui, sans-serif`
     ctx.textAlign = 'left'
     ctx.textBaseline = 'middle'
-    ctx.fillStyle = '#f0f0ff'
+    ctx.fillStyle = light ? '#1a1a2e' : '#f0f0ff'
     ctx.globalAlpha = showLabel ? 1 : 0.85
     ctx.fillText(node.label, node.x + 12, node.y)
     ctx.globalAlpha = 1
@@ -241,7 +252,9 @@ export function drawLabel(
     ctx.font = `${weight} ${fontSize}px 'Pretendard Variable', system-ui, sans-serif`
     ctx.textAlign = 'left'
     ctx.textBaseline = 'middle'
-    ctx.fillStyle = showLabel ? '#ddddf0' : '#7777a0'
+    ctx.fillStyle = light
+      ? (showLabel ? '#1a1a2e' : '#555580')
+      : (showLabel ? '#ddddf0' : '#7777a0')
     ctx.globalAlpha = showLabel ? 1 : 0.5
     ctx.fillText(node.label, node.x + 7, node.y)
     ctx.globalAlpha = 1

@@ -36,6 +36,19 @@ export type InteractionMode =
   | { type: 'creating-edge'; sourceId: string; currentX: number; currentY: number }
   | { type: 'creating-node'; worldX: number; worldY: number; screenX: number; screenY: number }
 
+export interface DeletedNode {
+  node: GraphNode
+  edges: GraphEdge[]
+  deletedAt: number
+}
+
+export interface CalendarEvent {
+  id: string
+  title: string
+  date: string // YYYY-MM-DD
+  done: boolean
+}
+
 export interface GraphState {
   nodes: GraphNode[]
   edges: GraphEdge[]
@@ -45,6 +58,8 @@ export interface GraphState {
   hoveredNodeId: string | null
   simulationAlpha: number
   searchQuery: string
+  recentlyDeleted: DeletedNode[]
+  calendarEvents: CalendarEvent[]
 }
 
 export type GraphAction =
@@ -64,6 +79,11 @@ export type GraphAction =
   | { type: 'UPDATE_NODE_LABEL'; nodeId: string; label: string }
   | { type: 'UPDATE_NODE'; nodeId: string; updates: Partial<Pick<GraphNode, 'label' | 'description' | 'tags' | 'type' | 'color'>> }
   | { type: 'SET_SEARCH'; query: string }
+  | { type: 'RESTORE_NODE'; deletedIndex: number }
+  | { type: 'CLEAR_DELETED' }
+  | { type: 'ADD_CALENDAR_EVENT'; event: CalendarEvent }
+  | { type: 'TOGGLE_CALENDAR_EVENT'; eventId: string }
+  | { type: 'REMOVE_CALENDAR_EVENT'; eventId: string }
 
 export const NODE_COLORS: Record<NodeType, string> = {
   work: '#bf5af2',

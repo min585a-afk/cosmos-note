@@ -57,6 +57,8 @@ export const initialState: GraphState = {
   hoveredNodeId: null,
   simulationAlpha: 1.0,
   searchQuery: '',
+  recentlyDeleted: [],
+  calendarEvents: [],
 }
 
 export function graphReducer(state: GraphState, action: GraphAction): GraphState {
@@ -84,13 +86,19 @@ export function graphReducer(state: GraphState, action: GraphAction): GraphState
       }
     }
 
-    case 'REMOVE_NODE':
+    case 'REMOVE_NODE': {
+      const removedNode = state.nodes.find(n => n.id === action.nodeId)
+      const removedEdges = state.edges.filter(e => e.source === action.nodeId || e.target === action.nodeId)
       return {
         ...state,
         nodes: state.nodes.filter((n) => n.id !== action.nodeId),
         edges: state.edges.filter((e) => e.source !== action.nodeId && e.target !== action.nodeId),
         selectedNodeId: state.selectedNodeId === action.nodeId ? null : state.selectedNodeId,
+        recentlyDeleted: removedNode
+          ? [{ node: removedNode, edges: removedEdges, deletedAt: Date.now() }, ...state.recentlyDeleted].slice(0, 20)
+          : state.recentlyDeleted,
       }
+    }
 
     case 'ADD_EDGE': {
       const exists = state.edges.some(
@@ -179,6 +187,37 @@ export function graphReducer(state: GraphState, action: GraphAction): GraphState
 
     case 'SET_SEARCH':
       return { ...state, searchQuery: action.query }
+
+    case 'RESTORE_NODE': {
+      const deleted = state.recentlyDeleted[action.deletedIndex]
+      if (!deleted) return state
+      return {
+        ...state,
+        nodes: [...state.nodes, deleted.node],
+        edges: [...state.edges, ...deleted.edges],
+        recentlyDeleted: state.recentlyDeleted.filter((_, i) => i !== action.deletedIndex),
+      }
+    }
+
+    case 'CLEAR_DELETED':
+      return { ...state, recentlyDeleted: [] }
+
+    case 'ADD_CALENDAR_EVENT':
+      return { ...state, calendarEvents: [...state.calendarEvents, action.event] }
+
+    case 'TOGGLE_CALENDAR_EVENT':
+      return {
+        ...state,
+        calendarEvents: state.calendarEvents.map(ev =>
+          ev.id === action.eventId ? { ...ev, done: !ev.done } : ev
+        ),
+      }
+
+    case 'REMOVE_CALENDAR_EVENT':
+      return {
+        ...state,
+        calendarEvents: state.calendarEvents.filter(ev => ev.id !== action.eventId),
+      }
 
     default:
       return state

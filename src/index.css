@@ -5,7 +5,9 @@
   box-sizing: border-box;
 }
 
-:root {
+/* ===== Cosmos Theme (default) ===== */
+:root,
+[data-theme="cosmos"] {
   --bg-primary: #050510;
   --bg-secondary: #0d0f16;
   --bg-card: rgba(15, 18, 30, 0.85);
@@ -28,6 +30,53 @@
   --sans: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-smooth: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --canvas-bg: transparent;
+  --sidebar-bg: rgba(10, 12, 20, 0.65);
+  --grid-dot-color: rgba(167, 139, 250, 0.08);
+}
+
+/* ===== Dot Theme ===== */
+[data-theme="dot"] {
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #16213e;
+  --bg-card: rgba(26, 26, 46, 0.92);
+  --bg-card-hover: rgba(30, 30, 55, 0.98);
+  --border: rgba(80, 80, 120, 0.2);
+  --border-active: rgba(100, 100, 180, 0.35);
+  --text-primary: #d4d4e8;
+  --text-secondary: #8888aa;
+  --text-muted: #555570;
+  --accent: #7c6ffa;
+  --accent-glow: rgba(124, 111, 250, 0.2);
+  --accent-secondary: #38bdf8;
+  --accent-tertiary: #fb7185;
+  --canvas-bg: #1a1a2e;
+  --sidebar-bg: rgba(22, 22, 42, 0.92);
+  --grid-dot-color: rgba(124, 111, 250, 0.15);
+}
+
+/* ===== Light Theme ===== */
+[data-theme="light"] {
+  --bg-primary: #f5f5f7;
+  --bg-secondary: #eeeef2;
+  --bg-card: rgba(255, 255, 255, 0.92);
+  --bg-card-hover: rgba(255, 255, 255, 0.98);
+  --border: rgba(0, 0, 0, 0.08);
+  --border-active: rgba(100, 80, 220, 0.25);
+  --text-primary: #1a1a2e;
+  --text-secondary: #666680;
+  --text-muted: #999aaa;
+  --accent: #6c5ce7;
+  --accent-glow: rgba(108, 92, 231, 0.15);
+  --accent-secondary: #0984e3;
+  --accent-tertiary: #e84393;
+  --node-work: #9b59b6;
+  --node-personal: #00b4d8;
+  --node-task: #e74c3c;
+  --node-idea: #00b894;
+  --canvas-bg: #f5f5f7;
+  --sidebar-bg: rgba(255, 255, 255, 0.88);
+  --grid-dot-color: rgba(100, 80, 180, 0.1);
 }
 
 html, body {

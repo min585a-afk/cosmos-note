@@ -1,29 +1,31 @@
-import type { GraphNode, GraphEdge } from '../types/graph'
+import type { GraphNode, GraphEdge, DeletedNode, CalendarEvent } from '../types/graph'
 
 const STORAGE_KEY = 'cosmos-note-data'
 
 interface SavedData {
   nodes: GraphNode[]
   edges: GraphEdge[]
+  recentlyDeleted?: DeletedNode[]
+  calendarEvents?: CalendarEvent[]
   version: number
 }
 
-export function saveToStorage(nodes: GraphNode[], edges: GraphEdge[]) {
+export function saveToStorage(nodes: GraphNode[], edges: GraphEdge[], recentlyDeleted?: DeletedNode[], calendarEvents?: CalendarEvent[]) {
   try {
-    const data: SavedData = { nodes, edges, version: 1 }
+    const data: SavedData = { nodes, edges, recentlyDeleted, calendarEvents, version: 1 }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
   } catch {
     // localStorage full or unavailable
   }
 }
 
-export function loadFromStorage(): { nodes: GraphNode[]; edges: GraphEdge[] } | null {
+export function loadFromStorage(): { nodes: GraphNode[]; edges: GraphEdge[]; recentlyDeleted?: DeletedNode[]; calendarEvents?: CalendarEvent[] } | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
     const data: SavedData = JSON.parse(raw)
     if (!data.nodes || !data.edges) return null
-    return { nodes: data.nodes, edges: data.edges }
+    return { nodes: data.nodes, edges: data.edges, recentlyDeleted: data.recentlyDeleted, calendarEvents: data.calendarEvents }
   } catch {
     return null
   }
