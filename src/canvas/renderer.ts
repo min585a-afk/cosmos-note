@@ -102,6 +102,17 @@ export function drawNode(
   ctx.arc(x, y, r, 0, TWO_PI)
   ctx.fillStyle = color
   ctx.fill()
+
+  // Empty node indicator: dashed ring
+  if (!node.description.trim() && !isHovered && !isSelected) {
+    ctx.beginPath()
+    ctx.arc(x, y, r + 3, 0, TWO_PI)
+    ctx.setLineDash([2, 2])
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)'
+    ctx.lineWidth = 0.5
+    ctx.stroke()
+    ctx.setLineDash([])
+  }
 }
 
 export function drawLabel(

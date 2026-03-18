@@ -71,3 +71,10 @@ export const NODE_COLORS: Record<NodeType, string> = {
   task: '#ff2d55',
   idea: '#00ff87',
 }
+
+export const EMPTY_NODE_COLOR = '#4a4a5a'
+
+export function getNodeColor(node: GraphNode): string {
+  // Node with description → neon color, empty → gray
+  return node.description.trim() ? NODE_COLORS[node.type] : EMPTY_NODE_COLOR
+}

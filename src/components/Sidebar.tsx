@@ -1,5 +1,6 @@
 import { useGraphState, useGraphDispatch } from '../state/GraphContext'
 import type { NodeType } from '../types/graph'
+import { NODE_COLORS, EMPTY_NODE_COLOR } from '../types/graph'
 import type { ViewMode } from '../App'
 
 export function Sidebar({ view, onViewChange }: { view: ViewMode; onViewChange: (v: ViewMode) => void }) {
@@ -117,7 +118,7 @@ export function Sidebar({ view, onViewChange }: { view: ViewMode; onViewChange: 
                   }
                 }}
               >
-                <span className="nav-item__dot" style={{ background: n.color }} />
+                <span className="nav-item__dot" style={{ background: n.description.trim() ? NODE_COLORS[n.type] : EMPTY_NODE_COLOR }} />
                 <span className="nav-item__label-text">{n.label}</span>
               </button>
             ))}

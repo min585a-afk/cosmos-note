@@ -1,5 +1,5 @@
 import type { GraphState, GraphAction, GraphNode, GraphEdge } from '../types/graph'
-import { NODE_COLORS as COLORS } from '../types/graph'
+import { NODE_COLORS as COLORS, EMPTY_NODE_COLOR } from '../types/graph'
 
 let _idCounter = 0
 export function generateId(): string {
@@ -9,6 +9,7 @@ export function generateId(): string {
 export function createNode(
   partial: Pick<GraphNode, 'label' | 'type'> & Partial<GraphNode>
 ): GraphNode {
+  const desc = partial.description || ''
   return {
     id: generateId(),
     description: '',
@@ -20,9 +21,11 @@ export function createNode(
     fx: null,
     fy: null,
     radius: 14,
-    color: COLORS[partial.type],
+    color: desc.trim() ? COLORS[partial.type] : EMPTY_NODE_COLOR,
     createdAt: Date.now(),
     ...partial,
+    // Override color based on description content
+    ...(partial.color ? {} : { color: desc.trim() ? COLORS[partial.type] : EMPTY_NODE_COLOR }),
   }
 }
 
@@ -145,7 +148,10 @@ export function graphReducer(state: GraphState, action: GraphAction): GraphState
         nodes: state.nodes.map((n) => {
           if (n.id !== action.nodeId) return n
           const updated = { ...n, ...action.updates }
-          if (action.updates.type) updated.color = COLORS[action.updates.type]
+          // Determine color: if description exists → neon, else → gray
+          const desc = (action.updates.description !== undefined ? action.updates.description : n.description).trim()
+          const nodeType = action.updates.type || n.type
+          updated.color = desc ? COLORS[nodeType] : EMPTY_NODE_COLOR
           return updated
         }),
       }

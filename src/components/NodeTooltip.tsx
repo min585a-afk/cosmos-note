@@ -3,6 +3,7 @@ import { useGraphState, useGraphDispatch } from '../state/GraphContext'
 import { worldToScreen } from '../canvas/viewport'
 import { generateBranches } from '../utils/generateBranches'
 import type { NodeType } from '../types/graph'
+import { NODE_COLORS, EMPTY_NODE_COLOR } from '../types/graph'
 
 const NODE_TYPE_LABELS: Record<NodeType, string> = {
   work: '업무',
@@ -138,7 +139,7 @@ export function NodeTooltip({
       onClick={(e) => e.stopPropagation()}
     >
       <div className="node-tooltip__header">
-        <div className="node-tooltip__bar" style={{ background: node.color }} />
+        <div className="node-tooltip__bar" style={{ background: node.description.trim() ? NODE_COLORS[node.type] : EMPTY_NODE_COLOR }} />
         <button className="node-tooltip__type-btn" onClick={cycleType} title="타입 변경">
           {NODE_TYPE_LABELS[node.type]}
         </button>
@@ -178,7 +179,7 @@ export function NodeTooltip({
           onClick={() => startEdit('description')}
           title="클릭하여 수정"
         >
-          {node.description || '설명을 추가하세요...'}
+          {node.description || '내용을 적으면 색상이 활성화됩니다...'}
         </div>
       )}
 
