@@ -84,6 +84,7 @@ export type GraphAction =
   | { type: 'ADD_CALENDAR_EVENT'; event: CalendarEvent }
   | { type: 'TOGGLE_CALENDAR_EVENT'; eventId: string }
   | { type: 'REMOVE_CALENDAR_EVENT'; eventId: string }
+  | { type: 'RELINK_ALL' }
 
 export const NODE_COLORS: Record<NodeType, string> = {
   work: '#bf5af2',

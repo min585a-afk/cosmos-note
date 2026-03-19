@@ -68,13 +68,16 @@ export function Sidebar({ view, onViewChange, onScreensaver }: { view: ViewMode;
   return (
     <aside className="sidebar">
       <div className="sidebar__header">
-        <button className="sidebar__logo" onClick={onScreensaver} title="화면보호기">
+        <button className="sidebar__logo" onClick={() => onViewChange('graph')} title="Graph View">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="2" />
-            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+            <circle cx="12" cy="12" r="10" />
+            <circle cx="12" cy="12" r="4" />
+            <line x1="21.17" y1="8" x2="12" y2="8" />
+            <line x1="3.95" y1="6.06" x2="8.54" y2="14" />
+            <line x1="10.88" y1="21.94" x2="15.46" y2="14" />
           </svg>
         </button>
-        <span className="sidebar__title">Cosmos Note</span>
+        <span className="sidebar__title" style={{ cursor: 'pointer' }} onClick={() => onViewChange('graph')}>Cosmos Note</span>
         <div className="sidebar__theme-toggle">
           <button
             className="btn-icon btn-icon--sm"

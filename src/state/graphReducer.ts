@@ -219,6 +219,17 @@ export function graphReducer(state: GraphState, action: GraphAction): GraphState
         calendarEvents: state.calendarEvents.filter(ev => ev.id !== action.eventId),
       }
 
+    case 'RELINK_ALL': {
+      // Re-run auto-linking for all nodes to find missed connections
+      let newEdges = [...state.edges]
+      for (const node of state.nodes) {
+        const others = state.nodes.filter(n => n.id !== node.id)
+        const autoEdges = findAutoLinks(node, others, newEdges, generateId)
+        newEdges = [...newEdges, ...autoEdges]
+      }
+      return { ...state, edges: newEdges }
+    }
+
     default:
       return state
   }

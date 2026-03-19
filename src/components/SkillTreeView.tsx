@@ -163,18 +163,24 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
   const [autoConnectPreview, setAutoConnectPreview] = useState<{ from: string; to: string } | null>(null)
   const [zoom, setZoom] = useState(1)
   const [floatOffsets, setFloatOffsets] = useState<Map<string, { dx: number; dy: number }>>(new Map())
+  const treeNodesRef = useRef(tree?.nodes || [])
+  treeNodesRef.current = tree?.nodes || []
 
   // Gentle floating animation — nodes drift slightly around their position
   useEffect(() => {
-    if (!tree || tree.nodes.length === 0) return
     let animId: number
     const startTime = performance.now()
 
     const animate = () => {
+      const nodes = treeNodesRef.current
+      if (nodes.length === 0) {
+        animId = requestAnimationFrame(animate)
+        return
+      }
       const t = (performance.now() - startTime) * 0.001
       const offsets = new Map<string, { dx: number; dy: number }>()
-      for (let i = 0; i < tree.nodes.length; i++) {
-        const node = tree.nodes[i]
+      for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i]
         const hash = node.id.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)
         const speed = 0.3 + (Math.abs(hash) % 10) * 0.05
         const amp = i === 0 ? 1.5 : 3 // First node moves less (anchor)
@@ -188,7 +194,7 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
     }
     animId = requestAnimationFrame(animate)
     return () => cancelAnimationFrame(animId)
-  }, [tree?.nodes.length, tree?.id])
+  }, [treeId])
 
   if (!tree) return null
 

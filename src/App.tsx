@@ -135,6 +135,11 @@ function AppContent() {
     return () => obs.disconnect()
   }, [])
 
+  // Re-link all nodes on startup to catch missed connections
+  useEffect(() => {
+    dispatch({ type: 'RELINK_ALL' })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Animate mode: keep reheating
   useEffect(() => {
     if (!graphSettings.animate) return

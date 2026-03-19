@@ -59,7 +59,7 @@ export function NoteView({ onSwitchToGraph }: { onSwitchToGraph: (nodeId: string
   const [filter, setFilter] = useState<NodeType | 'all'>('all')
   const [sortBy, setSortBy] = useState<'recent' | 'name'>('recent')
   const [newNoteInput, setNewNoteInput] = useState('')
-  const [isEditing, setIsEditing] = useState(false)
+  const [isEditing, setIsEditing] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const bodyRef = useRef<HTMLTextAreaElement>(null)
   const [dragId, setDragId] = useState<string | null>(null)
@@ -369,7 +369,7 @@ export function NoteView({ onSwitchToGraph }: { onSwitchToGraph: (nodeId: string
               <button
                 key={n.id}
                 className={`note-item ${n.id === selectedNodeId ? 'note-item--active' : ''} ${dragOverId === n.id ? 'note-item--dragover' : ''}`}
-                onClick={() => { dispatch({ type: 'SET_SELECTED', nodeId: n.id }); setIsEditing(false) }}
+                onClick={() => { dispatch({ type: 'SET_SELECTED', nodeId: n.id }); setIsEditing(true) }}
                 draggable
                 onDragStart={() => setDragId(n.id)}
                 onDragOver={(e) => { e.preventDefault(); setDragOverId(n.id) }}
@@ -515,17 +515,17 @@ export function NoteView({ onSwitchToGraph }: { onSwitchToGraph: (nodeId: string
               <TagInput onAdd={handleAddTag} />
             </div>
 
-            {/* Body: Edit or Preview mode */}
-            {isEditing ? (
-              <textarea
-                ref={bodyRef}
-                className="note-editor__body"
-                value={activeNote.description}
-                onChange={(e) => handleDescChange(e.target.value)}
-                onKeyDown={handleBodyKeyDown}
-                placeholder={'여기에 내용을 작성하세요...\n\n마크다운 문법 지원:\n# 제목\n**굵게** *기울임* `코드`\n- 목록\n- [ ] 할일\n> 인용\n[[다른 노트]] 로 링크'}
-              />
-            ) : (
+            {/* Body: always editable (Notion-like) with optional preview */}
+            <textarea
+              ref={bodyRef}
+              className="note-editor__body"
+              value={activeNote.description}
+              onChange={(e) => handleDescChange(e.target.value)}
+              onKeyDown={handleBodyKeyDown}
+              placeholder={'여기에 내용을 작성하세요...\n\n마크다운 문법 지원:\n# 제목\n**굵게** *기울임* `코드`\n- 목록\n- [ ] 할일\n> 인용\n[[다른 노트]] 로 링크'}
+              style={isEditing ? undefined : { display: 'none' }}
+            />
+            {!isEditing && (
               <div
                 className="note-editor__preview"
                 onClick={() => setIsEditing(true)}
@@ -560,7 +560,7 @@ export function NoteView({ onSwitchToGraph }: { onSwitchToGraph: (nodeId: string
                         <button
                           key={cn.id}
                           className="note-editor__link"
-                          onClick={() => { dispatch({ type: 'SET_SELECTED', nodeId: cn.id }); setIsEditing(false) }}
+                          onClick={() => { dispatch({ type: 'SET_SELECTED', nodeId: cn.id }); setIsEditing(true) }}
                         >
                           <span className="note-editor__link-dot" style={{ background: cn.description.trim() ? NODE_COLORS[cn.type] : '#4a4a5a' }} />
                           {cn.label}
@@ -582,7 +582,7 @@ export function NoteView({ onSwitchToGraph }: { onSwitchToGraph: (nodeId: string
                         <button
                           key={bl.id}
                           className="note-editor__link"
-                          onClick={() => { dispatch({ type: 'SET_SELECTED', nodeId: bl.id }); setIsEditing(false) }}
+                          onClick={() => { dispatch({ type: 'SET_SELECTED', nodeId: bl.id }); setIsEditing(true) }}
                         >
                           <span className="note-editor__link-dot" style={{ background: bl.description.trim() ? NODE_COLORS[bl.type] : '#4a4a5a' }} />
                           {bl.label}
