@@ -166,6 +166,7 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
   const treeNodesRef = useRef(tree?.nodes || [])
   treeNodesRef.current = tree?.nodes || []
   const frameCountRef = useRef(0)
+  const didDragRef = useRef(false)
 
   // Gentle floating animation — nodes drift slightly around their position
   useEffect(() => {
@@ -223,6 +224,7 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
     const node = nodes.find(n => n.id === nodeId)
     if (!node) return
     const pos = getSvgPos(e)
+    didDragRef.current = false
     if (e.shiftKey) {
       // Shift+drag to connect
       setConnecting({ sourceId: nodeId, mx: pos.x, my: pos.y })
@@ -241,6 +243,7 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
 
   const handlePointerMove = (e: React.MouseEvent) => {
     if (dragging) {
+      didDragRef.current = true
       const pos = getSvgPos(e)
       const nx = pos.x - dragging.offX
       const ny = pos.y - dragging.offY
@@ -436,7 +439,7 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
           return (
             <g key={node.id} className="skill-graph-node"
               onMouseDown={e => handleNodePointerDown(e, node.id)}
-              onClick={e => { e.stopPropagation(); dispatch({ type: 'SET_SELECTED_NODE', nodeId: node.id }) }}
+              onClick={e => { e.stopPropagation(); if (!didDragRef.current) dispatch({ type: 'SET_SELECTED_NODE', nodeId: node.id }) }}
               onDoubleClick={e => { e.stopPropagation(); toggleDone(node.id, node.status) }}
               style={{ cursor: dragging ? 'grabbing' : 'grab' }}
             >

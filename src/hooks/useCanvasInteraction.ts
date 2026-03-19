@@ -48,8 +48,7 @@ export function useCanvasInteraction(
     dragStartRef.current = { x: pos.x, y: pos.y }
 
     if (hit) {
-      // Always select the node immediately on pointer down
-      dispatch({ type: 'SET_SELECTED', nodeId: hit.id })
+      // Do NOT select on pointer down — wait for click (after confirming no drag)
       if (e.shiftKey) {
         dispatch({
           type: 'SET_INTERACTION',

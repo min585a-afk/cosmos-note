@@ -7,7 +7,7 @@ function isKorean(ch: string): boolean {
          (code >= 0x3130 && code <= 0x318F)     // Hangul Compatibility Jamo
 }
 
-// Extract keywords from a node for matching
+// Extract keywords from a node for matching (NO type — type should NOT cause auto-link)
 function extractKeywords(node: GraphNode): Set<string> {
   const words = new Set<string>()
 
@@ -53,7 +53,7 @@ function extractKeywords(node: GraphNode): Set<string> {
     words.delete(word)
   }
 
-  words.add(node.type)
+  // NOTE: Do NOT add node.type — same type alone should never cause auto-link
   return words
 }
 
@@ -70,26 +70,27 @@ function koreanPrefixMatch(a: string, b: string): boolean {
   return shared >= 2
 }
 
-// Find similarity between two keyword sets
+// Find similarity between two keyword sets (only real content keywords)
 function calculateSimilarity(a: Set<string>, b: Set<string>): number {
   let matches = 0
   for (const word of a) {
     if (b.has(word)) {
-      matches += 1.5 // Exact match is strong signal
+      matches += 1.5 // Exact keyword match is strong signal
       continue
     }
+    // Only check advanced matching for longer words to avoid false positives
     for (const bWord of b) {
       if (word === bWord) continue
-      // Substring match for words 2+ chars
-      if (word.length >= 2 && bWord.length >= 2) {
+      // Substring match for words 3+ chars (stricter to avoid false matches)
+      if (word.length >= 3 && bWord.length >= 3) {
         if (word.includes(bWord) || bWord.includes(word)) {
-          matches += 0.8
+          matches += 0.7
           continue
         }
       }
       // Korean prefix/stem match (e.g., 디자인 ↔ 디자이너)
       if (word.length >= 2 && bWord.length >= 2 && koreanPrefixMatch(word, bWord)) {
-        matches += 1.0
+        matches += 0.8
       }
     }
   }
@@ -111,7 +112,8 @@ function extractWikiLinks(description: string): string[] {
 
 /**
  * Find nodes that should be auto-linked to a given node.
- * Checks: shared keywords, shared tags, same type, [[wikilinks]], content keywords
+ * Links based on: shared tags, shared keywords in title/content, [[wikilinks]]
+ * Does NOT link based on same node type alone.
  */
 export function findAutoLinks(
   newNode: GraphNode,
@@ -209,13 +211,14 @@ export function findAutoLinks(
       if (token.length >= 2 && ndesc.includes(token)) score += 1.0
     }
 
-    if (score >= 1.0) {
+    // Only connect if real content similarity exists (threshold 2.0)
+    if (score >= 2.0) {
       scored.push({ node, score })
     }
   }
 
   scored.sort((a, b) => b.score - a.score)
-  const maxAutoLinks = 5 - edges.length // More generous auto-linking
+  const maxAutoLinks = 5 - edges.length
   const topMatches = scored.slice(0, Math.max(0, maxAutoLinks))
 
   for (const match of topMatches) {
