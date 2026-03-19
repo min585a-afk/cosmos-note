@@ -294,14 +294,11 @@ export function NodeTooltip({
       )}
 
       <div className="node-tooltip__actions">
-        <button className="node-tooltip__btn node-tooltip__btn--branch" onClick={handleGenerateBranches}>
-          분석
-        </button>
         <button
-          className={`node-tooltip__btn ${showRelated ? 'node-tooltip__btn--active' : ''}`}
+          className={`node-tooltip__btn node-tooltip__btn--branch ${showRelated ? 'node-tooltip__btn--active' : ''}`}
           onClick={() => setShowRelated(!showRelated)}
         >
-          추천
+          연관 노트
         </button>
         <button
           className="node-tooltip__btn"
