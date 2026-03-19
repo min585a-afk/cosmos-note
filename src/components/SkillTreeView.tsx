@@ -145,7 +145,9 @@ function hexPath(cx: number, cy: number, r: number): string {
 }
 
 // ===== Skill Node Graph (시각적 노드 연결 시스템) =====
-const SKILL_NODE_R = 28
+const SKILL_NODE_R_BIG = 36
+const SKILL_NODE_R_SMALL = 20
+const AUTO_CONNECT_DIST = 80
 
 function SkillNodeGraph({ treeId }: { treeId: string }) {
   const state = useSkillTreeState()
@@ -158,11 +160,16 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
   const [newLabel, setNewLabel] = useState('')
   const [viewBox, setViewBox] = useState({ x: 0, y: 0 })
   const [panning, setPanning] = useState<{ startX: number; startY: number; startVbX: number; startVbY: number } | null>(null)
+  const [autoConnectPreview, setAutoConnectPreview] = useState<{ from: string; to: string } | null>(null)
 
   if (!tree) return null
 
   const edges = tree.edges || []
   const nodes = tree.nodes
+
+  const getNodeR = (nodeId: string) => {
+    return nodes.length > 0 && nodes[0].id === nodeId ? SKILL_NODE_R_BIG : SKILL_NODE_R_SMALL
+  }
 
   const getSvgPos = (e: React.MouseEvent) => {
     const rect = svgRef.current?.getBoundingClientRect()
@@ -194,7 +201,19 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
   const handlePointerMove = (e: React.MouseEvent) => {
     if (dragging) {
       const pos = getSvgPos(e)
-      dispatch({ type: 'MOVE_FLOW_NODE', treeId, nodeId: dragging.nodeId, x: pos.x - dragging.offX, y: pos.y - dragging.offY })
+      const nx = pos.x - dragging.offX
+      const ny = pos.y - dragging.offY
+      dispatch({ type: 'MOVE_FLOW_NODE', treeId, nodeId: dragging.nodeId, x: nx, y: ny })
+      // Auto-connect preview: find nearest node within distance
+      let nearest: { id: string; dist: number } | null = null
+      for (const n of nodes) {
+        if (n.id === dragging.nodeId) continue
+        const d = Math.hypot((n.x || 0) - nx, (n.y || 0) - ny)
+        if (d < AUTO_CONNECT_DIST && (!nearest || d < nearest.dist)) {
+          nearest = { id: n.id, dist: d }
+        }
+      }
+      setAutoConnectPreview(nearest ? { from: dragging.nodeId, to: nearest.id } : null)
     } else if (connecting) {
       const pos = getSvgPos(e)
       setConnecting({ ...connecting, mx: pos.x, my: pos.y })
@@ -211,12 +230,23 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
       const pos = getSvgPos(e)
       const target = nodes.find(n => {
         const nx = n.x || 0, ny = n.y || 0
-        return Math.hypot(pos.x - nx, pos.y - ny) < SKILL_NODE_R + 10 && n.id !== connecting.sourceId
+        return Math.hypot(pos.x - nx, pos.y - ny) < getNodeR(n.id) + 10 && n.id !== connecting.sourceId
       })
       if (target) {
         dispatch({ type: 'ADD_FLOW_EDGE', treeId, edge: { id: `fe-${Date.now()}`, source: connecting.sourceId, target: target.id } })
       }
       setConnecting(null)
+    }
+    if (dragging && autoConnectPreview) {
+      // Auto-connect if nearby and not already connected
+      const alreadyConnected = edges.some(e =>
+        (e.source === autoConnectPreview.from && e.target === autoConnectPreview.to) ||
+        (e.source === autoConnectPreview.to && e.target === autoConnectPreview.from)
+      )
+      if (!alreadyConnected) {
+        dispatch({ type: 'ADD_FLOW_EDGE', treeId, edge: { id: `fe-${Date.now()}`, source: autoConnectPreview.from, target: autoConnectPreview.to } })
+      }
+      setAutoConnectPreview(null)
     }
     setDragging(null)
     setPanning(null)
@@ -293,8 +323,9 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
               {/* Arrow */}
               {(() => {
                 const angle = Math.atan2(ty - sy, tx - sx)
-                const ax = tx - Math.cos(angle) * (SKILL_NODE_R + 4)
-                const ay = ty - Math.sin(angle) * (SKILL_NODE_R + 4)
+                const tgtR = getNodeR(edge.target)
+                const ax = tx - Math.cos(angle) * (tgtR + 4)
+                const ay = ty - Math.sin(angle) * (tgtR + 4)
                 return (
                   <polygon
                     points={`${ax},${ay} ${ax - 8 * Math.cos(angle - 0.4)},${ay - 8 * Math.sin(angle - 0.4)} ${ax - 8 * Math.cos(angle + 0.4)},${ay - 8 * Math.sin(angle + 0.4)}`}
@@ -314,12 +345,27 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
             stroke="rgba(167,139,250,0.6)" strokeWidth={2} strokeDasharray="4 4" />
         })()}
 
+        {/* Auto-connect preview */}
+        {autoConnectPreview && (() => {
+          const from = nodes.find(n => n.id === autoConnectPreview.from)
+          const to = nodes.find(n => n.id === autoConnectPreview.to)
+          if (!from || !to) return null
+          return (
+            <line x1={from.x || 0} y1={from.y || 0} x2={to.x || 0} y2={to.y || 0}
+              stroke="rgba(0,255,135,0.5)" strokeWidth={2} strokeDasharray="4 4"
+              className="skill-graph__auto-connect" />
+          )
+        })()}
+
         {/* Nodes */}
         {nodes.map(node => {
           const nx = node.x || 0
           const ny = node.y || 0
           const isDone = node.status === 'done'
           const isSelected = state.selectedNodeId === node.id
+          const R = getNodeR(node.id)
+          const isFirst = nodes.length > 0 && nodes[0].id === node.id
+          const isAutoTarget = autoConnectPreview?.to === node.id
           return (
             <g key={node.id} className="skill-graph-node"
               onMouseDown={e => handleNodePointerDown(e, node.id)}
@@ -327,26 +373,29 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
               onDoubleClick={e => { e.stopPropagation(); toggleDone(node.id, node.status) }}
               style={{ cursor: dragging ? 'grabbing' : 'grab' }}
             >
+              {/* Auto-connect glow */}
+              {isAutoTarget && <polygon points={hexPath(nx, ny, R + 10)} fill="none" stroke="#00ff87" strokeWidth={2} opacity={0.5} className="skill-graph__pulse" />}
+
               {/* Glow */}
-              {isSelected && <polygon points={hexPath(nx, ny, SKILL_NODE_R + 6)} fill="none" stroke="var(--accent)" strokeWidth={2} opacity={0.4} />}
-              {isDone && <polygon points={hexPath(nx, ny, SKILL_NODE_R + 4)} fill="none" stroke="#00ff87" strokeWidth={1} opacity={0.3} />}
+              {isSelected && <polygon points={hexPath(nx, ny, R + 6)} fill="none" stroke="var(--accent)" strokeWidth={2} opacity={0.4} />}
+              {isDone && <polygon points={hexPath(nx, ny, R + 4)} fill="none" stroke="#00ff87" strokeWidth={1} opacity={0.3} />}
 
               {/* Hex body */}
-              <polygon points={hexPath(nx, ny, SKILL_NODE_R)}
-                fill={isDone ? 'rgba(0,255,135,0.1)' : 'rgba(12,14,24,0.9)'}
-                stroke={isDone ? '#00ff87' : isSelected ? 'var(--accent)' : 'rgba(167,139,250,0.3)'}
-                strokeWidth={isDone ? 2 : 1.5}
+              <polygon points={hexPath(nx, ny, R)}
+                fill={isDone ? 'rgba(0,255,135,0.1)' : isFirst ? 'rgba(30,20,60,0.9)' : 'rgba(12,14,24,0.9)'}
+                stroke={isDone ? '#00ff87' : isSelected ? 'var(--accent)' : isFirst ? 'rgba(167,139,250,0.6)' : 'rgba(167,139,250,0.3)'}
+                strokeWidth={isDone ? 2 : isFirst ? 2 : 1.5}
               />
 
               {/* Icon */}
               <text x={nx} y={ny + 1} textAnchor="middle" dominantBaseline="middle"
-                fontSize={isDone ? 16 : 14} fill={isDone ? '#00ff87' : 'rgba(167,139,250,0.8)'}>
-                {isDone ? '✦' : '◇'}
+                fontSize={isFirst ? 18 : (isDone ? 14 : 11)} fill={isDone ? '#00ff87' : 'rgba(167,139,250,0.8)'}>
+                {isFirst ? '★' : isDone ? '✦' : '◇'}
               </text>
 
               {/* Label */}
-              <text x={nx} y={ny + SKILL_NODE_R + 14} textAnchor="middle"
-                fill={isDone ? '#00ff87' : '#c0c0e0'} fontSize={11} fontWeight={500}
+              <text x={nx} y={ny + R + 14} textAnchor="middle"
+                fill={isDone ? '#00ff87' : '#c0c0e0'} fontSize={isFirst ? 13 : 11} fontWeight={isFirst ? 700 : 500}
                 fontFamily="'Pretendard Variable', system-ui, sans-serif">
                 {node.label.length > 10 ? node.label.slice(0, 10) + '..' : node.label}
               </text>
@@ -390,7 +439,7 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
 }
 
 // ===== Main View =====
-export function SkillTreeView() {
+export function SkillTreeView({ forceTab }: { forceTab?: 'analysis' | 'skill' } = {}) {
   const state = useSkillTreeState()
   const dispatch = useSkillTreeDispatch()
   const graphDispatch = useGraphDispatch()
@@ -401,7 +450,7 @@ export function SkillTreeView() {
   const [quickCreate, setQuickCreate] = useState(false)
   const [quickName, setQuickName] = useState('')
 
-  const tab = state.activeTab
+  const tab = forceTab || state.activeTab
   const activeTree = state.trees.find(t => t.id === state.activeTreeId)
   const activeFlowTree = state.flowTrees.find(t => t.id === state.activeFlowTreeId)
   const selectedNode = activeTree?.nodes.find(n => n.id === state.selectedNodeId)
@@ -448,12 +497,14 @@ export function SkillTreeView() {
   return (
     <div className="skilltree-view">
       <div className="skilltree-sidebar">
-        <div className="skilltree-tabs">
-          <button className={`skilltree-tab ${tab === 'analysis' ? 'skilltree-tab--active' : ''}`}
-            onClick={() => dispatch({ type: 'SET_TAB', tab: 'analysis' })}>🔍 분석트리</button>
-          <button className={`skilltree-tab ${tab === 'skill' ? 'skilltree-tab--active' : ''}`}
-            onClick={() => dispatch({ type: 'SET_TAB', tab: 'skill' })}>⚡ 스킬트리</button>
-        </div>
+        {!forceTab && (
+          <div className="skilltree-tabs">
+            <button className={`skilltree-tab ${tab === 'analysis' ? 'skilltree-tab--active' : ''}`}
+              onClick={() => dispatch({ type: 'SET_TAB', tab: 'analysis' })}>🔍 분석트리</button>
+            <button className={`skilltree-tab ${tab === 'skill' ? 'skilltree-tab--active' : ''}`}
+              onClick={() => dispatch({ type: 'SET_TAB', tab: 'skill' })}>⚡ 스킬트리</button>
+          </div>
+        )}
         <div className="skilltree-sidebar__header">
           <h3>{tab === 'analysis' ? '프로젝트 분석' : '스킬 노드'}</h3>
           <button className="skilltree-sidebar__add" onClick={() => setShowCreate(true)}>+</button>

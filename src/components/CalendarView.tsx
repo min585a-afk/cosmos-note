@@ -31,6 +31,12 @@ export function CalendarView() {
   const [editValue, setEditValue] = useState('')
   const [hoveredCell, setHoveredCell] = useState<string | null>(null)
 
+  // Notion-style creation modal
+  const [modalDate, setModalDate] = useState<string | null>(null)
+  const [modalTitle, setModalTitle] = useState('')
+  const [modalDesc, setModalDesc] = useState('')
+  const [modalTime, setModalTime] = useState('')
+
   const todayKey = formatDateKey(today.getFullYear(), today.getMonth(), today.getDate())
   const daysInMonth = getDaysInMonth(viewYear, viewMonth)
   const firstDay = getFirstDayOfWeek(viewYear, viewMonth)
@@ -63,6 +69,27 @@ export function CalendarView() {
       event: { id: generateId(), title: newTitle.trim(), date, done: false },
     })
     setNewTitle('')
+  }
+
+  const handleModalAdd = () => {
+    if (!modalTitle.trim() || !modalDate) return
+    const title = modalTime ? `[${modalTime}] ${modalTitle.trim()}` : modalTitle.trim()
+    const fullTitle = modalDesc.trim() ? `${title} — ${modalDesc.trim()}` : title
+    dispatch({
+      type: 'ADD_CALENDAR_EVENT',
+      event: { id: generateId(), title: fullTitle, date: modalDate, done: false },
+    })
+    setModalDate(null)
+    setModalTitle('')
+    setModalDesc('')
+    setModalTime('')
+  }
+
+  const openModal = (date: string) => {
+    setModalDate(date)
+    setModalTitle('')
+    setModalDesc('')
+    setModalTime('')
   }
 
   const handleStartEdit = (ev: CalendarEvent) => {
@@ -123,10 +150,7 @@ export function CalendarView() {
           </button>
         </div>
         <div className="calendar-view__actions">
-          <button className="calendar-view__new-btn" onClick={() => {
-            setEditingCell(todayKey)
-            setNewTitle('')
-          }}>
+          <button className="calendar-view__new-btn" onClick={() => openModal(todayKey)}>
             새로 만들기
           </button>
         </div>
@@ -171,7 +195,7 @@ export function CalendarView() {
                     {isHovered && !isEditing && (
                       <button
                         className="calendar-view__add-btn"
-                        onClick={(e) => { e.stopPropagation(); setEditingCell(dateKey); setNewTitle('') }}
+                        onClick={(e) => { e.stopPropagation(); openModal(dateKey) }}
                       >
                         +
                       </button>
@@ -243,6 +267,43 @@ export function CalendarView() {
           </div>
         </div>
       </div>
+
+      {/* Notion-style creation modal */}
+      {modalDate && (
+        <div className="cal-modal-overlay" onClick={() => setModalDate(null)}>
+          <div className="cal-modal" onClick={e => e.stopPropagation()}>
+            <div className="cal-modal__header">
+              <span className="cal-modal__date">{modalDate}</span>
+              <button className="cal-modal__close" onClick={() => setModalDate(null)}>×</button>
+            </div>
+            <input
+              autoFocus
+              className="cal-modal__title"
+              placeholder="제목을 입력하세요..."
+              value={modalTitle}
+              onChange={e => setModalTitle(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) handleModalAdd() }}
+            />
+            <input
+              className="cal-modal__time"
+              type="time"
+              value={modalTime}
+              onChange={e => setModalTime(e.target.value)}
+            />
+            <textarea
+              className="cal-modal__desc"
+              placeholder="설명 추가..."
+              value={modalDesc}
+              onChange={e => setModalDesc(e.target.value)}
+              rows={3}
+            />
+            <div className="cal-modal__actions">
+              <button className="cal-modal__cancel" onClick={() => setModalDate(null)}>취소</button>
+              <button className="cal-modal__save" onClick={handleModalAdd}>저장</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

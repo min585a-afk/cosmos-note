@@ -3078,6 +3078,29 @@
   align-items: center;
   justify-content: center;
   z-index: 100;
+  transition: opacity 600ms ease;
+}
+.login-screen--fadeout {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Loading → Login fade */
+.login-loading--fadeout {
+  animation: login-fadeout 600ms ease-out forwards;
+}
+@keyframes login-fadeout {
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.95); }
+}
+
+/* Login form fade in */
+.login-form--fadein {
+  animation: login-form-appear 600ms ease-out;
+}
+@keyframes login-form-appear {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
 .login-screen__content {
@@ -3407,6 +3430,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: screensaver-fadein 800ms ease-out;
+}
+.screensaver--fadeout {
+  animation: screensaver-fadeout 600ms ease-out forwards;
+  pointer-events: none;
 }
 .screensaver__content {
   position: relative;
@@ -3435,6 +3463,14 @@
 @keyframes screensaver-float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
+}
+@keyframes screensaver-fadein {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes screensaver-fadeout {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 /* ===== Skill Node Graph ===== */
@@ -3471,6 +3507,22 @@
 }
 .skill-graph-node:active {
   cursor: grabbing;
+}
+
+/* Auto-connect pulse */
+.skill-graph__pulse {
+  animation: skill-pulse 600ms ease-in-out infinite alternate;
+}
+.skill-graph__auto-connect {
+  animation: skill-dash-flow 400ms linear infinite;
+}
+@keyframes skill-pulse {
+  0% { opacity: 0.3; }
+  100% { opacity: 0.7; }
+}
+@keyframes skill-dash-flow {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -8; }
 }
 
 /* Skill graph add overlay */
@@ -3606,6 +3658,111 @@
 .sidebar__logo:hover {
   background: rgba(167,139,250,0.15);
 }
+
+/* ===== Calendar Modal (Notion-style) ===== */
+.cal-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: login-fadein 200ms ease-out;
+}
+.cal-modal {
+  width: 400px;
+  background: var(--surface, rgba(12,14,24,0.98));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+}
+.cal-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.cal-modal__date {
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 500;
+}
+.cal-modal__close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.cal-modal__close:hover { color: var(--text-primary); }
+.cal-modal__title {
+  width: 100%;
+  padding: 10px 0;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: none;
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 600;
+  outline: none;
+  margin-bottom: 12px;
+}
+.cal-modal__title::placeholder { color: var(--text-muted); }
+.cal-modal__time {
+  width: 120px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.03);
+  color: var(--text-secondary);
+  font-size: 13px;
+  outline: none;
+  margin-bottom: 12px;
+}
+.cal-modal__desc {
+  width: 100%;
+  padding: 8px 0;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  outline: none;
+  resize: none;
+  font-family: inherit;
+  margin-bottom: 16px;
+}
+.cal-modal__desc::placeholder { color: var(--text-muted); }
+.cal-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.cal-modal__cancel {
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 13px;
+}
+.cal-modal__cancel:hover { background: rgba(255,255,255,0.05); }
+.cal-modal__save {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+.cal-modal__save:hover { background: var(--accent-hover, #8b6bfa); }
 
 /* ===== Scrollbar ===== */
 ::-webkit-scrollbar { width: 6px; }

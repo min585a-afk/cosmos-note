@@ -18,30 +18,32 @@ import { CalendarView } from './components/CalendarView'
 import { QuestPage } from './components/QuestPage'
 import './App.css'
 
-export type ViewMode = 'graph' | 'notes' | 'skilltree' | 'calendar' | 'quests'
+export type ViewMode = 'graph' | 'notes' | 'skilltree' | 'analysis' | 'calendar' | 'quests'
 
 // ===== Login / Loading Screen =====
 function LoginScreen({ onLogin }: { onLogin: () => void }) {
-  const [phase, setPhase] = useState<'loading' | 'login'>('loading')
+  const [phase, setPhase] = useState<'loading' | 'fade-to-login' | 'login' | 'fade-out'>('loading')
   const [name, setName] = useState(() => localStorage.getItem('cosmos-user') || '')
 
   useEffect(() => {
-    const timer = setTimeout(() => setPhase('login'), 2200)
-    return () => clearTimeout(timer)
+    const t1 = setTimeout(() => setPhase('fade-to-login'), 2000)
+    const t2 = setTimeout(() => setPhase('login'), 2600)
+    return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [])
 
   const handleLogin = () => {
     const userName = name.trim() || 'Explorer'
     localStorage.setItem('cosmos-user', userName)
-    onLogin()
+    setPhase('fade-out')
+    setTimeout(onLogin, 600)
   }
 
   return (
-    <div className="login-screen">
+    <div className={`login-screen ${phase === 'fade-out' ? 'login-screen--fadeout' : ''}`}>
       <CosmosBg />
       <div className="login-screen__content">
-        {phase === 'loading' ? (
-          <div className="login-loading">
+        {(phase === 'loading' || phase === 'fade-to-login') ? (
+          <div className={`login-loading ${phase === 'fade-to-login' ? 'login-loading--fadeout' : ''}`}>
             <div className="login-loading__star">
               <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
                 <circle cx="24" cy="24" r="4" fill="white" className="login-loading__core" />
@@ -51,8 +53,8 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
             </div>
             <p className="login-loading__text">Cosmos Note</p>
           </div>
-        ) : (
-          <div className="login-form">
+        ) : phase !== 'fade-out' ? (
+          <div className="login-form login-form--fadein">
             <div className="login-form__logo">
               <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="2" />
@@ -71,7 +73,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
             />
             <button className="login-form__btn" onClick={handleLogin}>시작하기</button>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   )
@@ -79,8 +81,14 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
 // ===== Screensaver =====
 function Screensaver({ onDismiss }: { onDismiss: () => void }) {
+  const [fadingOut, setFadingOut] = useState(false)
+  const handleDismiss = () => {
+    if (fadingOut) return
+    setFadingOut(true)
+    setTimeout(onDismiss, 600)
+  }
   return (
-    <div className="screensaver" onClick={onDismiss}>
+    <div className={`screensaver ${fadingOut ? 'screensaver--fadeout' : ''}`} onClick={handleDismiss}>
       <CosmosBg />
       <div className="screensaver__content">
         <div className="screensaver__logo">
@@ -166,8 +174,10 @@ function AppContent() {
           <CalendarView />
         ) : view === 'quests' ? (
           <QuestPage />
+        ) : view === 'analysis' ? (
+          <SkillTreeView forceTab="analysis" />
         ) : (
-          <SkillTreeView />
+          <SkillTreeView forceTab="skill" />
         )}
         <StatusBar />
       </main>
