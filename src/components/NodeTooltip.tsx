@@ -31,10 +31,20 @@ export function NodeTooltip({
   const [showTagInput, setShowTagInput] = useState(false)
   const [showRelated, setShowRelated] = useState(false)
 
-  if (!selectedNodeId) return null
+  const node = selectedNodeId ? nodes.find((n) => n.id === selectedNodeId) : null
 
-  const node = nodes.find((n) => n.id === selectedNodeId)
-  if (!node) return null
+  // All hooks MUST be called before any early return (Rules of Hooks)
+  const relatedNodes = useMemo(() =>
+    (showRelated && node) ? findRelatedNodes(node, nodes, edges, 5) : [],
+    [showRelated, node, nodes, edges]
+  )
+
+  const tagSuggestions = useMemo(() =>
+    node ? suggestTags(node, nodes) : [],
+    [node, nodes]
+  )
+
+  if (!selectedNodeId || !node) return null
 
   // Find connected nodes (backlinks)
   const connectedNodes = edges
@@ -44,18 +54,6 @@ export function NodeTooltip({
       return nodes.find(n => n.id === otherId)
     })
     .filter(Boolean) as typeof nodes
-
-  // Related nodes (not yet connected)
-  const relatedNodes = useMemo(() =>
-    showRelated ? findRelatedNodes(node, nodes, edges, 5) : [],
-    [showRelated, node, nodes, edges]
-  )
-
-  // Tag suggestions
-  const tagSuggestions = useMemo(() =>
-    suggestTags(node, nodes),
-    [node, nodes]
-  )
 
   const vp = {
     ...viewport,
