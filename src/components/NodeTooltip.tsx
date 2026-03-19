@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useGraphState, useGraphDispatch } from '../state/GraphContext'
 import { worldToScreen } from '../canvas/viewport'
 import { generateBranches } from '../utils/generateBranches'
+import { findRelatedNodes, suggestTags } from '../utils/autoLink'
+import { generateId } from '../state/graphReducer'
 import type { NodeType } from '../types/graph'
 import { NODE_COLORS, EMPTY_NODE_COLOR } from '../types/graph'
 
@@ -27,6 +29,7 @@ export function NodeTooltip({
   const [editValue, setEditValue] = useState('')
   const [tagInput, setTagInput] = useState('')
   const [showTagInput, setShowTagInput] = useState(false)
+  const [showRelated, setShowRelated] = useState(false)
 
   if (!selectedNodeId) return null
 
@@ -41,6 +44,18 @@ export function NodeTooltip({
       return nodes.find(n => n.id === otherId)
     })
     .filter(Boolean) as typeof nodes
+
+  // Related nodes (not yet connected)
+  const relatedNodes = useMemo(() =>
+    showRelated ? findRelatedNodes(node, nodes, edges, 5) : [],
+    [showRelated, node, nodes, edges]
+  )
+
+  // Tag suggestions
+  const tagSuggestions = useMemo(() =>
+    suggestTags(node, nodes),
+    [node, nodes]
+  )
 
   const vp = {
     ...viewport,
@@ -94,6 +109,14 @@ export function NodeTooltip({
       .map(e => ({ ...e, source: node.id }))
 
     dispatch({ type: 'BATCH_ADD', nodes: branches, edges: rootEdges })
+    onReheat()
+  }
+
+  const handleConnectRelated = (targetId: string) => {
+    dispatch({
+      type: 'ADD_EDGE',
+      edge: { id: generateId(), source: node.id, target: targetId },
+    })
     onReheat()
   }
 
@@ -209,6 +232,22 @@ export function NodeTooltip({
         )}
       </div>
 
+      {/* Tag suggestions */}
+      {tagSuggestions.length > 0 && (
+        <div className="node-tooltip__tag-suggest">
+          <span className="node-tooltip__tag-suggest-label">추천 태그:</span>
+          {tagSuggestions.map(tag => (
+            <button
+              key={tag}
+              className="node-tooltip__tag-suggest-btn"
+              onClick={() => dispatch({ type: 'UPDATE_NODE', nodeId: node.id, updates: { tags: [...node.tags, tag] } })}
+            >
+              +{tag}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Backlinks / Connected nodes */}
       {connectedNodes.length > 0 ? (
         <div className="node-tooltip__backlinks">
@@ -232,9 +271,37 @@ export function NodeTooltip({
         </div>
       )}
 
+      {/* Related nodes panel */}
+      {showRelated && relatedNodes.length > 0 && (
+        <div className="node-tooltip__related">
+          <div className="node-tooltip__related-label">연관 노트 추천</div>
+          {relatedNodes.map(r => (
+            <div key={r.node.id} className="node-tooltip__related-item">
+              <button className="node-tooltip__related-link" onClick={() => navigateToNode(r.node.id)}>
+                <span className="node-tooltip__backlink-dot" style={{ background: r.node.color }} />
+                {r.node.label}
+              </button>
+              <span className="node-tooltip__related-reason">{r.reason}</span>
+              <button className="node-tooltip__related-connect" onClick={() => handleConnectRelated(r.node.id)} title="연결하기">
+                +
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      {showRelated && relatedNodes.length === 0 && (
+        <div className="node-tooltip__no-links">연관 노트가 없습니다.</div>
+      )}
+
       <div className="node-tooltip__actions">
         <button className="node-tooltip__btn node-tooltip__btn--branch" onClick={handleGenerateBranches}>
-          연관 노드
+          분석
+        </button>
+        <button
+          className={`node-tooltip__btn ${showRelated ? 'node-tooltip__btn--active' : ''}`}
+          onClick={() => setShowRelated(!showRelated)}
+        >
+          추천
         </button>
         <button
           className="node-tooltip__btn"

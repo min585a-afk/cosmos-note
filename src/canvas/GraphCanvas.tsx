@@ -127,10 +127,14 @@ export function GraphCanvas({ reheatRef, onOpenNote, settings }: { reheatRef?: M
       }
     }
 
-    // Search matching
+    // Search matching — label + description + tags
     const query = searchRef.current.toLowerCase()
     const searchMatchIds = query
-      ? new Set(visibleNodes.filter(n => n.label.toLowerCase().includes(query)).map(n => n.id))
+      ? new Set(visibleNodes.filter(n =>
+          n.label.toLowerCase().includes(query) ||
+          n.description.toLowerCase().includes(query) ||
+          n.tags.some(t => t.toLowerCase().includes(query))
+        ).map(n => n.id))
       : new Set<string>()
 
     const sizeMul = gs?.nodeSizeMul ?? 1.0

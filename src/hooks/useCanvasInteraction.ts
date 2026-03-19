@@ -44,6 +44,8 @@ export function useCanvasInteraction(
     const hit = hitTestNode(pos.x, pos.y, nodes, cvp)
 
     if (hit) {
+      // Always select the node immediately on pointer down
+      dispatch({ type: 'SET_SELECTED', nodeId: hit.id })
       if (e.shiftKey) {
         dispatch({
           type: 'SET_INTERACTION',

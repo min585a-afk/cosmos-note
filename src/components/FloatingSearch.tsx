@@ -13,10 +13,14 @@ export function FloatingSearch() {
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Matching nodes
+  // Matching nodes — search label AND description
   const query = searchQuery.toLowerCase()
   const matches = query
-    ? nodes.filter(n => n.label.toLowerCase().includes(query))
+    ? nodes.filter(n =>
+        n.label.toLowerCase().includes(query) ||
+        n.description.toLowerCase().includes(query) ||
+        n.tags.some(t => t.toLowerCase().includes(query))
+      )
     : []
 
   // Ctrl+K to toggle
@@ -159,7 +163,14 @@ export function FloatingSearch() {
                 onClick={() => navigateToNode(n.id)}
               >
                 <span className="floating-search__result-dot" style={{ background: n.color }} />
-                <span className="floating-search__result-label">{n.label}</span>
+                <div className="floating-search__result-info">
+                  <span className="floating-search__result-label">{n.label}</span>
+                  {!n.label.toLowerCase().includes(query) && n.description && (
+                    <span className="floating-search__result-context">
+                      {n.description.substring(0, 50)}{n.description.length > 50 ? '...' : ''}
+                    </span>
+                  )}
+                </div>
                 <span className="floating-search__result-type">{n.type}</span>
               </button>
             ))

@@ -811,6 +811,101 @@
   background: rgba(167, 139, 250, 0.2);
 }
 
+.node-tooltip__btn--active {
+  background: rgba(124, 106, 255, 0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Tag suggestions */
+.node-tooltip__tag-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.node-tooltip__tag-suggest-label {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.node-tooltip__tag-suggest-btn {
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  border: 1px dashed rgba(0, 255, 135, 0.3);
+  background: rgba(0, 255, 135, 0.05);
+  color: rgba(0, 255, 135, 0.7);
+  cursor: pointer;
+  transition: all 150ms;
+}
+.node-tooltip__tag-suggest-btn:hover {
+  background: rgba(0, 255, 135, 0.15);
+  border-color: #00ff87;
+  color: #00ff87;
+}
+
+/* Related nodes panel */
+.node-tooltip__related {
+  margin-bottom: 8px;
+}
+.node-tooltip__related-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.node-tooltip__related-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+}
+.node-tooltip__related-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+  flex: 1;
+  text-align: left;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background 150ms;
+}
+.node-tooltip__related-link:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+.node-tooltip__related-reason {
+  font-size: 9px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.node-tooltip__related-connect {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 255, 135, 0.3);
+  background: none;
+  color: #00ff87;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 150ms;
+}
+.node-tooltip__related-connect:hover {
+  background: rgba(0, 255, 135, 0.15);
+  border-color: #00ff87;
+}
+
 .node-tooltip__date {
   margin-left: auto;
   font-size: 10px; color: var(--text-muted);
@@ -1037,10 +1132,24 @@
   flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
+.floating-search__result-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+.floating-search__result-context {
+  font-size: 10px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .floating-search__result-type {
   font-size: 10px; color: var(--text-muted);
   padding: 1px 6px; border-radius: 6px;
   background: rgba(255, 255, 255, 0.04);
+  flex-shrink: 0;
 }
 
 .floating-search__empty {

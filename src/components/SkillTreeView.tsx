@@ -162,6 +162,33 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
   const [panning, setPanning] = useState<{ startX: number; startY: number; startVbX: number; startVbY: number } | null>(null)
   const [autoConnectPreview, setAutoConnectPreview] = useState<{ from: string; to: string } | null>(null)
   const [zoom, setZoom] = useState(1)
+  const [floatOffsets, setFloatOffsets] = useState<Map<string, { dx: number; dy: number }>>(new Map())
+
+  // Gentle floating animation — nodes drift slightly around their position
+  useEffect(() => {
+    if (!tree || tree.nodes.length === 0) return
+    let animId: number
+    const startTime = performance.now()
+
+    const animate = () => {
+      const t = (performance.now() - startTime) * 0.001
+      const offsets = new Map<string, { dx: number; dy: number }>()
+      for (let i = 0; i < tree.nodes.length; i++) {
+        const node = tree.nodes[i]
+        const hash = node.id.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)
+        const speed = 0.3 + (Math.abs(hash) % 10) * 0.05
+        const amp = i === 0 ? 1.5 : 3 // First node moves less (anchor)
+        offsets.set(node.id, {
+          dx: Math.sin(t * speed + hash * 0.1) * amp,
+          dy: Math.cos(t * speed * 0.7 + hash * 0.3) * amp,
+        })
+      }
+      setFloatOffsets(offsets)
+      animId = requestAnimationFrame(animate)
+    }
+    animId = requestAnimationFrame(animate)
+    return () => cancelAnimationFrame(animId)
+  }, [tree?.nodes.length, tree?.id])
 
   if (!tree) return null
 
@@ -346,8 +373,10 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
           const src = nodes.find(n => n.id === edge.source)
           const tgt = nodes.find(n => n.id === edge.target)
           if (!src || !tgt) return null
-          const sx = src.x || 0, sy = src.y || 0
-          const tx = tgt.x || 0, ty = tgt.y || 0
+          const sf = floatOffsets.get(edge.source) || { dx: 0, dy: 0 }
+          const tf = floatOffsets.get(edge.target) || { dx: 0, dy: 0 }
+          const sx = (src.x || 0) + sf.dx, sy = (src.y || 0) + sf.dy
+          const tx = (tgt.x || 0) + tf.dx, ty = (tgt.y || 0) + tf.dy
           const bothConnected = connectedSet.has(edge.source) && connectedSet.has(edge.target)
           return (
             <line key={edge.id} x1={sx} y1={sy} x2={tx} y2={ty}
@@ -361,7 +390,8 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
         {connecting && (() => {
           const src = nodes.find(n => n.id === connecting.sourceId)
           if (!src) return null
-          return <line x1={src.x || 0} y1={src.y || 0} x2={connecting.mx} y2={connecting.my}
+          const sf = floatOffsets.get(connecting.sourceId) || { dx: 0, dy: 0 }
+          return <line x1={(src.x || 0) + sf.dx} y1={(src.y || 0) + sf.dy} x2={connecting.mx} y2={connecting.my}
             stroke="rgba(167,139,250,0.6)" strokeWidth={2} strokeDasharray="4 4" />
         })()}
 
@@ -370,8 +400,10 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
           const from = nodes.find(n => n.id === autoConnectPreview.from)
           const to = nodes.find(n => n.id === autoConnectPreview.to)
           if (!from || !to) return null
+          const ff = floatOffsets.get(autoConnectPreview.from) || { dx: 0, dy: 0 }
+          const tf = floatOffsets.get(autoConnectPreview.to) || { dx: 0, dy: 0 }
           return (
-            <line x1={from.x || 0} y1={from.y || 0} x2={to.x || 0} y2={to.y || 0}
+            <line x1={(from.x || 0) + ff.dx} y1={(from.y || 0) + ff.dy} x2={(to.x || 0) + tf.dx} y2={(to.y || 0) + tf.dy}
               stroke="rgba(0,255,135,0.5)" strokeWidth={2} strokeDasharray="4 4"
               className="skill-graph__auto-connect" />
           )
@@ -379,8 +411,9 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
 
         {/* Nodes */}
         {nodes.map(node => {
-          const nx = node.x || 0
-          const ny = node.y || 0
+          const fo = dragging?.nodeId === node.id ? { dx: 0, dy: 0 } : (floatOffsets.get(node.id) || { dx: 0, dy: 0 })
+          const nx = (node.x || 0) + fo.dx
+          const ny = (node.y || 0) + fo.dy
           const isDone = node.status === 'done'
           const isSelected = state.selectedNodeId === node.id
           const R = getNodeR(node.id)
