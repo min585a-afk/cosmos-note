@@ -3,7 +3,9 @@ import type { GraphNode, GraphEdge } from '../types/graph'
 const SPRING_STRENGTH = 0.08
 const SPRING_LENGTH = 70
 const REPULSION_SAME_GROUP = 400    // Within same group — mild, keeps nodes readable
-const REPULSION_DIFF_GROUP = 0      // Between different groups — ZERO, completely ignore
+const REPULSION_DIFF_GROUP = 300    // Between different groups — push away from other clusters
+const EDGE_REPULSION = 600          // Edges push away non-connected nodes
+const EDGE_REPULSION_DIST = 60      // Max distance for edge repulsion
 const GLOBAL_CENTER = 0.006         // Pull ALL nodes toward (0,0) — the "gravity"
 const GROUP_COHESION = 0.02         // Extra pull within same group toward group center
 const DAMPING = 0.8
@@ -97,7 +99,43 @@ export function tick(nodes: GraphNode[], edges: GraphEdge[], alpha: number): voi
     target.vx -= fx; target.vy -= fy
   }
 
-  // 3. Group cohesion — same group nodes pull toward their shared centroid
+  // 3. Edge-node repulsion — edges push away nodes that aren't part of that edge
+  for (const edge of edges) {
+    const src = nodeMap.get(edge.source)
+    const tgt = nodeMap.get(edge.target)
+    if (!src || !tgt) continue
+
+    const edgeGroup = groups.get(src.id)
+
+    for (const node of nodes) {
+      if (node.id === edge.source || node.id === edge.target) continue
+      // Only repel nodes from OTHER groups
+      if (groups.get(node.id) === edgeGroup) continue
+
+      // Find closest point on edge segment to node
+      const ex = tgt.x - src.x, ey = tgt.y - src.y
+      const edgeLenSq = ex * ex + ey * ey
+      if (edgeLenSq < 1) continue
+
+      let t = ((node.x - src.x) * ex + (node.y - src.y) * ey) / edgeLenSq
+      t = Math.max(0, Math.min(1, t))
+
+      const closestX = src.x + t * ex
+      const closestY = src.y + t * ey
+      let dx = node.x - closestX
+      let dy = node.y - closestY
+      let dist = Math.sqrt(dx * dx + dy * dy)
+
+      if (dist < EDGE_REPULSION_DIST) {
+        if (dist < 5) dist = 5
+        const force = (EDGE_REPULSION * alpha) / (dist * dist)
+        node.vx += (dx / dist) * force
+        node.vy += (dy / dist) * force
+      }
+    }
+  }
+
+  // 4. Group cohesion — same group nodes pull toward their shared centroid — same group nodes pull toward their shared centroid
   const centroids = new Map<number, { cx: number; cy: number; count: number }>()
   for (const node of nodes) {
     const g = groups.get(node.id)!
@@ -115,13 +153,13 @@ export function tick(nodes: GraphNode[], edges: GraphEdge[], alpha: number): voi
     node.vy -= (node.y - gcy) * GROUP_COHESION * alpha
   }
 
-  // 4. Global center gravity — pulls everything toward (0,0)
+  // 5. Global center gravity — pulls everything toward (0,0)
   for (const node of nodes) {
     node.vx -= node.x * GLOBAL_CENTER * alpha
     node.vy -= node.y * GLOBAL_CENTER * alpha
   }
 
-  // 5. Apply damping and update
+  // 6. Apply damping and update
   for (const node of nodes) {
     node.vx *= DAMPING
     node.vy *= DAMPING
