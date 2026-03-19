@@ -25,14 +25,18 @@ export function CalendarView() {
   const today = new Date()
   const [viewYear, setViewYear] = useState(today.getFullYear())
   const [viewMonth, setViewMonth] = useState(today.getMonth())
-  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [editingCell, setEditingCell] = useState<string | null>(null)
   const [newTitle, setNewTitle] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
+  const [hoveredCell, setHoveredCell] = useState<string | null>(null)
 
   const todayKey = formatDateKey(today.getFullYear(), today.getMonth(), today.getDate())
   const daysInMonth = getDaysInMonth(viewYear, viewMonth)
   const firstDay = getFirstDayOfWeek(viewYear, viewMonth)
+
+  // Also get prev/next month days for display
+  const prevMonthDays = viewMonth === 0 ? getDaysInMonth(viewYear - 1, 11) : getDaysInMonth(viewYear, viewMonth - 1)
 
   // Group events by date
   const eventsByDate = new Map<string, CalendarEvent[]>()
@@ -68,7 +72,6 @@ export function CalendarView() {
 
   const handleSaveEdit = () => {
     if (!editingId) return
-    // Remove and re-add with new title
     const ev = calendarEvents.find(e => e.id === editingId)
     if (ev) {
       dispatch({ type: 'REMOVE_CALENDAR_EVENT', eventId: editingId })
@@ -80,45 +83,56 @@ export function CalendarView() {
     setEditingId(null)
   }
 
-  // Build calendar grid cells
-  const cells: Array<{ day: number; dateKey: string } | null> = []
-  for (let i = 0; i < firstDay; i++) cells.push(null)
-  for (let d = 1; d <= daysInMonth; d++) {
-    cells.push({ day: d, dateKey: formatDateKey(viewYear, viewMonth, d) })
-  }
-  // Pad to fill last row
-  while (cells.length % 7 !== 0) cells.push(null)
+  // Build calendar grid cells with prev/next month padding
+  type CellData = { day: number; dateKey: string; isCurrentMonth: boolean }
+  const cells: CellData[] = []
 
-  const selectedEvents = selectedDate ? (eventsByDate.get(selectedDate) || []) : []
+  // Previous month days
+  for (let i = firstDay - 1; i >= 0; i--) {
+    const d = prevMonthDays - i
+    const m = viewMonth === 0 ? 11 : viewMonth - 1
+    const y = viewMonth === 0 ? viewYear - 1 : viewYear
+    cells.push({ day: d, dateKey: formatDateKey(y, m, d), isCurrentMonth: false })
+  }
+  // Current month days
+  for (let d = 1; d <= daysInMonth; d++) {
+    cells.push({ day: d, dateKey: formatDateKey(viewYear, viewMonth, d), isCurrentMonth: true })
+  }
+  // Next month days to fill
+  let nextDay = 1
+  while (cells.length % 7 !== 0 || cells.length < 35) {
+    const m = viewMonth === 11 ? 0 : viewMonth + 1
+    const y = viewMonth === 11 ? viewYear + 1 : viewYear
+    cells.push({ day: nextDay, dateKey: formatDateKey(y, m, nextDay), isCurrentMonth: false })
+    nextDay++
+    if (cells.length >= 42) break
+  }
 
   return (
     <div className="calendar-view">
       {/* Header */}
       <div className="calendar-view__header">
         <div className="calendar-view__nav">
+          <h2 className="calendar-view__title">{viewYear}년 {MONTH_NAMES[viewMonth]}</h2>
+          <button className="calendar-view__today-btn" onClick={goToday}>오늘</button>
           <button className="calendar-view__nav-btn" onClick={prevMonth}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>
           </button>
-          <h2 className="calendar-view__title">{viewYear}년 {MONTH_NAMES[viewMonth]}</h2>
           <button className="calendar-view__nav-btn" onClick={nextMonth}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
           </button>
-          <button className="calendar-view__today-btn" onClick={goToday}>오늘</button>
         </div>
-        <div className="calendar-view__stats">
-          <span className="calendar-view__stat">
-            <span className="calendar-view__stat-dot calendar-view__stat-dot--pending" />
-            {calendarEvents.filter(e => !e.done).length} 할 일
-          </span>
-          <span className="calendar-view__stat">
-            <span className="calendar-view__stat-dot calendar-view__stat-dot--done" />
-            {calendarEvents.filter(e => e.done).length} 완료
-          </span>
+        <div className="calendar-view__actions">
+          <button className="calendar-view__new-btn" onClick={() => {
+            setEditingCell(todayKey)
+            setNewTitle('')
+          }}>
+            새로 만들기
+          </button>
         </div>
       </div>
 
       <div className="calendar-view__body">
-        {/* Calendar Grid */}
         <div className="calendar-view__grid-wrapper">
           {/* Weekday headers */}
           <div className="calendar-view__weekdays">
@@ -129,112 +143,104 @@ export function CalendarView() {
             ))}
           </div>
 
-          {/* Day cells */}
+          {/* Day cells - Notion style */}
           <div className="calendar-view__grid">
             {cells.map((cell, idx) => {
-              if (!cell) return <div key={`empty-${idx}`} className="calendar-view__cell calendar-view__cell--empty" />
-              const { day, dateKey } = cell
+              const { day, dateKey, isCurrentMonth } = cell
               const dayEvents = eventsByDate.get(dateKey) || []
               const isToday = dateKey === todayKey
-              const isSelected = dateKey === selectedDate
+              const isEditing = editingCell === dateKey
+              const isHovered = hoveredCell === dateKey
               const colIdx = idx % 7
 
               return (
                 <div
-                  key={dateKey}
-                  className={`calendar-view__cell ${isToday ? 'calendar-view__cell--today' : ''} ${isSelected ? 'calendar-view__cell--selected' : ''} ${colIdx === 0 ? 'calendar-view__cell--sun' : ''} ${colIdx === 6 ? 'calendar-view__cell--sat' : ''}`}
-                  onClick={() => setSelectedDate(isSelected ? null : dateKey)}
+                  key={`${dateKey}-${idx}`}
+                  className={`calendar-view__cell ${!isCurrentMonth ? 'calendar-view__cell--other' : ''} ${isToday ? 'calendar-view__cell--today' : ''} ${colIdx === 0 ? 'calendar-view__cell--sun' : ''} ${colIdx === 6 ? 'calendar-view__cell--sat' : ''}`}
+                  onMouseEnter={() => setHoveredCell(dateKey)}
+                  onMouseLeave={() => setHoveredCell(null)}
                 >
-                  <span className={`calendar-view__day-num ${isToday ? 'calendar-view__day-num--today' : ''}`}>
-                    {day}
-                  </span>
+                  <div className="calendar-view__cell-top">
+                    <span className={`calendar-view__day-num ${isToday ? 'calendar-view__day-num--today' : ''}`}>
+                      {idx < 7 && !isCurrentMonth ? `${viewMonth === 0 ? 12 : viewMonth}월 ${day}일` :
+                       day === 1 && isCurrentMonth && idx > 0 ? `${viewMonth + 1}월 ${day}일` :
+                       !isCurrentMonth && cells[idx - 1]?.isCurrentMonth ? `${viewMonth === 11 ? 1 : viewMonth + 2}월 ${day}일` :
+                       day}
+                    </span>
+                    {/* + button on hover */}
+                    {isHovered && !isEditing && (
+                      <button
+                        className="calendar-view__add-btn"
+                        onClick={(e) => { e.stopPropagation(); setEditingCell(dateKey); setNewTitle('') }}
+                      >
+                        +
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Inline editor */}
+                  {isEditing && (
+                    <div className="calendar-view__inline-editor">
+                      <input
+                        autoFocus
+                        className="calendar-view__inline-input"
+                        placeholder="메모 입력..."
+                        value={newTitle}
+                        onChange={e => setNewTitle(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') { handleAdd(dateKey); setEditingCell(null) }
+                          if (e.key === 'Escape') setEditingCell(null)
+                        }}
+                        onBlur={() => { if (newTitle.trim()) handleAdd(dateKey); setEditingCell(null) }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Events */}
                   <div className="calendar-view__cell-events">
-                    {dayEvents.slice(0, 3).map(ev => (
+                    {dayEvents.map(ev => (
                       <div
                         key={ev.id}
                         className={`calendar-view__cell-event ${ev.done ? 'calendar-view__cell-event--done' : ''}`}
-                        onClick={e => { e.stopPropagation(); dispatch({ type: 'TOGGLE_CALENDAR_EVENT', eventId: ev.id }) }}
                       >
-                        {ev.title}
+                        {editingId === ev.id ? (
+                          <input
+                            autoFocus
+                            className="calendar-view__event-edit"
+                            value={editValue}
+                            onChange={e => setEditValue(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') handleSaveEdit(); if (e.key === 'Escape') setEditingId(null) }}
+                            onBlur={handleSaveEdit}
+                          />
+                        ) : (
+                          <>
+                            <button
+                              className="calendar-view__event-check"
+                              onClick={e => { e.stopPropagation(); dispatch({ type: 'TOGGLE_CALENDAR_EVENT', eventId: ev.id }) }}
+                            >
+                              {ev.done ? '✓' : '○'}
+                            </button>
+                            <span
+                              className="calendar-view__event-title"
+                              onDoubleClick={() => handleStartEdit(ev)}
+                            >
+                              {ev.title}
+                            </span>
+                            <button
+                              className="calendar-view__event-remove"
+                              onClick={e => { e.stopPropagation(); dispatch({ type: 'REMOVE_CALENDAR_EVENT', eventId: ev.id }) }}
+                            >
+                              ×
+                            </button>
+                          </>
+                        )}
                       </div>
                     ))}
-                    {dayEvents.length > 3 && (
-                      <span className="calendar-view__cell-more">+{dayEvents.length - 3}</span>
-                    )}
                   </div>
                 </div>
               )
             })}
           </div>
-        </div>
-
-        {/* Side panel - selected date details */}
-        <div className={`calendar-view__detail ${selectedDate ? 'calendar-view__detail--open' : ''}`}>
-          {selectedDate && (
-            <>
-              <div className="calendar-view__detail-header">
-                <h3>{selectedDate === todayKey ? '오늘' : selectedDate}</h3>
-                <button className="calendar-view__detail-close" onClick={() => setSelectedDate(null)}>×</button>
-              </div>
-
-              {/* Add new event */}
-              <div className="calendar-view__detail-add">
-                <input
-                  className="calendar-view__detail-input"
-                  placeholder="할 일 추가..."
-                  value={newTitle}
-                  onChange={e => setNewTitle(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleAdd(selectedDate)}
-                />
-                <button className="calendar-view__detail-add-btn" onClick={() => handleAdd(selectedDate)}>+</button>
-              </div>
-
-              {/* Event list */}
-              <div className="calendar-view__detail-list">
-                {selectedEvents.length === 0 && (
-                  <div className="calendar-view__detail-empty">일정이 없습니다</div>
-                )}
-                {selectedEvents.map(ev => (
-                  <div key={ev.id} className={`calendar-view__detail-event ${ev.done ? 'calendar-view__detail-event--done' : ''}`}>
-                    <button
-                      className="calendar-view__detail-check"
-                      onClick={() => dispatch({ type: 'TOGGLE_CALENDAR_EVENT', eventId: ev.id })}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        {ev.done
-                          ? <><rect x="3" y="3" width="18" height="18" rx="4" fill="var(--accent)" stroke="var(--accent)" /><polyline points="9 12 11 14 15 10" stroke="white" strokeWidth="2.5" /></>
-                          : <rect x="3" y="3" width="18" height="18" rx="4" />
-                        }
-                      </svg>
-                    </button>
-                    {editingId === ev.id ? (
-                      <input
-                        autoFocus
-                        className="calendar-view__detail-edit-input"
-                        value={editValue}
-                        onChange={e => setEditValue(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') handleSaveEdit(); if (e.key === 'Escape') setEditingId(null) }}
-                        onBlur={handleSaveEdit}
-                      />
-                    ) : (
-                      <span
-                        className="calendar-view__detail-event-title"
-                        onDoubleClick={() => handleStartEdit(ev)}
-                      >
-                        {ev.title}
-                      </span>
-                    )}
-                    <button
-                      className="calendar-view__detail-remove"
-                      onClick={() => dispatch({ type: 'REMOVE_CALENDAR_EVENT', eventId: ev.id })}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
         </div>
       </div>
     </div>

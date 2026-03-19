@@ -134,7 +134,17 @@ function AnalysisTreeCanvas({ treeId, onExportToGraph }: { treeId: string; onExp
   )
 }
 
-// ===== Flow Skill Tree (가로형) =====
+// ===== Hexagonal SVG path helper =====
+function hexPath(cx: number, cy: number, r: number): string {
+  const pts: string[] = []
+  for (let i = 0; i < 6; i++) {
+    const angle = (Math.PI / 3) * i - Math.PI / 2
+    pts.push(`${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`)
+  }
+  return pts.join(' ')
+}
+
+// ===== Flow Skill Tree (가로형 + 육각형 노드) =====
 function FlowSkillTreeView({ treeId }: { treeId: string }) {
   const state = useSkillTreeState()
   const dispatch = useSkillTreeDispatch()
@@ -143,6 +153,7 @@ function FlowSkillTreeView({ treeId }: { treeId: string }) {
   const [newLabel, setNewLabel] = useState('')
   const [addingBranch, setAddingBranch] = useState<string | null>(null)
   const [branchLabel, setBranchLabel] = useState('')
+  const [showSummary, setShowSummary] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   if (!tree) return null
@@ -165,7 +176,6 @@ function FlowSkillTreeView({ treeId }: { treeId: string }) {
     setAddingBranch(null)
   }
 
-  // 단순 토글: pending ↔ done
   const toggleDone = (nodeId: string, current: FlowNodeStatus) => {
     const next: FlowNodeStatus = current === 'done' ? 'pending' : 'done'
     dispatch({ type: 'UPDATE_FLOW_NODE', treeId, nodeId, updates: { status: next } })
@@ -173,6 +183,28 @@ function FlowSkillTreeView({ treeId }: { treeId: string }) {
 
   const selectedNode = tree.nodes.find(n => n.id === state.selectedNodeId)
   const allMainDone = mainChain.length > 0 && mainChain.every(n => n.status === 'done')
+
+  // Generate summary of all nodes
+  const generateTreeSummary = () => {
+    const lines: string[] = []
+    lines.push(`## ${tree.name} - 스킬트리 종합 요약\n`)
+    mainChain.forEach((node, i) => {
+      const branches = tree.nodes.filter(n => n.parentId === node.id).sort((a, b) => a.order - b.order)
+      const statusIcon = node.status === 'done' ? '✅' : '⬜'
+      lines.push(`### ${statusIcon} 단계 ${i + 1}: ${node.label}`)
+      if (node.description) lines.push(`> ${node.description}`)
+      if (branches.length > 0) {
+        branches.forEach(b => {
+          const bIcon = b.status === 'done' ? '✅' : '⬜'
+          lines.push(`  - ${bIcon} ${b.label}${b.description ? ': ' + b.description : ''}`)
+        })
+      }
+      lines.push('')
+    })
+    const doneCount = mainChain.filter(n => n.status === 'done').length
+    lines.push(`---\n**진행률:** ${doneCount}/${mainChain.length} 단계 완료 (${Math.round(doneCount / mainChain.length * 100)}%)`)
+    return lines.join('\n')
+  }
 
   return (
     <div className="flow-tree">
@@ -182,7 +214,6 @@ function FlowSkillTreeView({ treeId }: { treeId: string }) {
             const branches = tree.nodes.filter(n => n.parentId === node.id).sort((a, b) => a.order - b.order)
             const isSelected = state.selectedNodeId === node.id
             const isDone = node.status === 'done'
-            // 이전 노드까지 모두 done이면 이 노드는 "다음 차례"
             const prevAllDone = mainChain.slice(0, i).every(n => n.status === 'done')
 
             return (
@@ -197,14 +228,19 @@ function FlowSkillTreeView({ treeId }: { treeId: string }) {
                   </div>
                 )}
 
-                {/* Main node - game stamp style */}
+                {/* Main node - hexagonal stamp style */}
                 <div className={`flow-node ${isDone ? 'flow-node--done' : ''} ${prevAllDone && !isDone ? 'flow-node--next' : ''} ${isSelected ? 'flow-node--selected' : ''}`}
                   onClick={() => dispatch({ type: 'SET_SELECTED_NODE', nodeId: node.id })}>
-                  <div className={`flow-node__stamp ${isDone ? 'flow-node__stamp--done' : ''} ${prevAllDone && !isDone ? 'flow-node__stamp--ready' : ''}`}
+                  <div className={`flow-hex ${isDone ? 'flow-hex--done' : ''} ${prevAllDone && !isDone ? 'flow-hex--ready' : ''}`}
                     onClick={e => { e.stopPropagation(); toggleDone(node.id, node.status) }}
                     title={isDone ? '완료됨' : prevAllDone ? '클릭하여 찍기!' : '잠김'}>
-                    <span className="flow-node__stamp-icon">{isDone ? '✦' : prevAllDone && !isDone ? '◇' : '🔒'}</span>
-                    <span className="flow-node__stamp-num">{i + 1}</span>
+                    <svg width="64" height="64" viewBox="0 0 64 64" className="flow-hex__svg">
+                      <polygon points={hexPath(32, 32, 28)} className="flow-hex__bg" />
+                      <polygon points={hexPath(32, 32, 28)} className="flow-hex__border" />
+                      {isDone && <polygon points={hexPath(32, 32, 24)} className="flow-hex__inner" />}
+                    </svg>
+                    <span className="flow-hex__icon">{isDone ? '✦' : prevAllDone && !isDone ? '◇' : '🔒'}</span>
+                    <span className="flow-hex__num">{i + 1}/{mainChain.length}</span>
                   </div>
                   <div className="flow-node__label">{node.label}</div>
                 </div>
@@ -262,11 +298,24 @@ function FlowSkillTreeView({ treeId }: { treeId: string }) {
         </div>
       </div>
 
-      {/* 최종 완료 바 */}
+      {/* 최종 완료 바 + 종합 설명 */}
       {allMainDone && (
         <div className="flow-complete-bar">
           <span className="flow-complete-bar__text">모든 단계 완료!</span>
-          <button className="flow-complete-bar__btn">🚀 업무 트리거 실행</button>
+          <button className="flow-complete-bar__btn" onClick={() => setShowSummary(!showSummary)}>
+            📋 종합 설명 보기
+          </button>
+        </div>
+      )}
+
+      {/* 종합 설명 패널 */}
+      {showSummary && allMainDone && (
+        <div className="flow-summary">
+          <div className="flow-summary__header">
+            <h3>스킬트리 종합 설명</h3>
+            <button onClick={() => setShowSummary(false)}>×</button>
+          </div>
+          <pre className="flow-summary__content">{generateTreeSummary()}</pre>
         </div>
       )}
 
@@ -304,6 +353,8 @@ export function SkillTreeView() {
   const [showCreate, setShowCreate] = useState(false)
   const [rootInput, setRootInput] = useState('')
   const [showRootInput, setShowRootInput] = useState(false)
+  const [quickCreate, setQuickCreate] = useState(false)
+  const [quickName, setQuickName] = useState('')
 
   const tab = state.activeTab
   const activeTree = state.trees.find(t => t.id === state.activeTreeId)
@@ -315,6 +366,14 @@ export function SkillTreeView() {
     if (tab === 'analysis') { dispatch({ type: 'CREATE_TREE', name: newName.trim() }); setShowRootInput(true) }
     else dispatch({ type: 'CREATE_FLOW_TREE', name: newName.trim() })
     setNewName(''); setShowCreate(false)
+  }
+
+  // Quick create from placeholder + button
+  const handleQuickCreate = () => {
+    if (!quickName.trim()) return
+    if (tab === 'analysis') { dispatch({ type: 'CREATE_TREE', name: quickName.trim() }); setShowRootInput(true) }
+    else dispatch({ type: 'CREATE_FLOW_TREE', name: quickName.trim() })
+    setQuickName(''); setQuickCreate(false)
   }
 
   const handleAddRoot = () => {
@@ -421,7 +480,34 @@ export function SkillTreeView() {
               ) : <AnalysisTreeCanvas treeId={activeTree.id} onExportToGraph={handleExportToGraph} />}
             </>
           ) : (
-            <div className="skilltree-placeholder"><div className="skilltree-placeholder__icon">🔍</div><h3>분석트리</h3><p>목표를 입력하면 AI가 단계별 대안을 제시합니다.</p><p>경로를 선택하며 프로젝트의 방향을 결정하세요.</p></div>
+            /* Placeholder with + button for quick creation */
+            <div className="skilltree-placeholder">
+              {quickCreate ? (
+                <div className="skilltree-placeholder__create">
+                  <input
+                    autoFocus
+                    className="skilltree-placeholder__input"
+                    placeholder={tab === 'analysis' ? '프로젝트 이름 입력...' : '플로우 이름 입력...'}
+                    value={quickName}
+                    onChange={e => setQuickName(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleQuickCreate(); if (e.key === 'Escape') { setQuickCreate(false); setQuickName('') } }}
+                  />
+                  <button className="skilltree-placeholder__create-btn" onClick={handleQuickCreate}>생성</button>
+                </div>
+              ) : (
+                <button className="skilltree-placeholder__add" onClick={() => setQuickCreate(true)}>
+                  <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                    <rect x="1" y="1" width="46" height="46" rx="12" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" />
+                    <line x1="24" y1="14" x2="24" y2="34" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    <line x1="14" y1="24" x2="34" y2="24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                </button>
+              )}
+              <div className="skilltree-placeholder__icon">🔍</div>
+              <h3>분석트리</h3>
+              <p>목표를 입력하면 AI가 단계별 대안을 제시합니다.</p>
+              <p>경로를 선택하며 프로젝트의 방향을 결정하세요.</p>
+            </div>
           )
         ) : (
           activeFlowTree ? (
@@ -435,7 +521,34 @@ export function SkillTreeView() {
               <FlowSkillTreeView treeId={activeFlowTree.id} />
             </>
           ) : (
-            <div className="skilltree-placeholder"><div className="skilltree-placeholder__icon">🎮</div><h3>스킬트리</h3><p>스킬을 하나씩 찍어가며 레벨업하세요.</p><p>각 스킬에 하위 스킬을 연결할 수 있습니다.</p></div>
+            /* Placeholder with + button for quick creation */
+            <div className="skilltree-placeholder">
+              {quickCreate ? (
+                <div className="skilltree-placeholder__create">
+                  <input
+                    autoFocus
+                    className="skilltree-placeholder__input"
+                    placeholder="플로우 이름 입력..."
+                    value={quickName}
+                    onChange={e => setQuickName(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleQuickCreate(); if (e.key === 'Escape') { setQuickCreate(false); setQuickName('') } }}
+                  />
+                  <button className="skilltree-placeholder__create-btn" onClick={handleQuickCreate}>생성</button>
+                </div>
+              ) : (
+                <button className="skilltree-placeholder__add" onClick={() => setQuickCreate(true)}>
+                  <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                    <rect x="1" y="1" width="46" height="46" rx="12" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" />
+                    <line x1="24" y1="14" x2="24" y2="34" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    <line x1="14" y1="24" x2="34" y2="24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                </button>
+              )}
+              <div className="skilltree-placeholder__icon">🎮</div>
+              <h3>스킬트리</h3>
+              <p>스킬을 하나씩 찍어가며 레벨업하세요.</p>
+              <p>각 스킬에 하위 스킬을 연결할 수 있습니다.</p>
+            </div>
           )
         )}
       </div>
