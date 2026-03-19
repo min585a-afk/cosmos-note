@@ -3,7 +3,7 @@ import type { GraphNode, GraphEdge } from '../types/graph'
 const SPRING_STRENGTH = 0.08
 const SPRING_LENGTH = 70
 const REPULSION_SAME_GROUP = 400    // Within same group — mild, keeps nodes readable
-const REPULSION_DIFF_GROUP = 80     // Between different groups — very weak, don't interfere
+const REPULSION_DIFF_GROUP = 0      // Between different groups — ZERO, completely ignore
 const GLOBAL_CENTER = 0.006         // Pull ALL nodes toward (0,0) — the "gravity"
 const GROUP_COHESION = 0.02         // Extra pull within same group toward group center
 const DAMPING = 0.8
