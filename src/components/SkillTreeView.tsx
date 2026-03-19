@@ -165,6 +165,7 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
   const [floatOffsets, setFloatOffsets] = useState<Map<string, { dx: number; dy: number }>>(new Map())
   const treeNodesRef = useRef(tree?.nodes || [])
   treeNodesRef.current = tree?.nodes || []
+  const frameCountRef = useRef(0)
 
   // Gentle floating animation — nodes drift slightly around their position
   useEffect(() => {
@@ -172,6 +173,12 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
     const startTime = performance.now()
 
     const animate = () => {
+      frameCountRef.current++
+      // Throttle to ~30fps to avoid React batching issues
+      if (frameCountRef.current % 2 !== 0) {
+        animId = requestAnimationFrame(animate)
+        return
+      }
       const nodes = treeNodesRef.current
       if (nodes.length === 0) {
         animId = requestAnimationFrame(animate)
@@ -182,8 +189,8 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
       for (let i = 0; i < nodes.length; i++) {
         const node = nodes[i]
         const hash = node.id.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)
-        const speed = 0.3 + (Math.abs(hash) % 10) * 0.05
-        const amp = i === 0 ? 1.5 : 3 // First node moves less (anchor)
+        const speed = 0.4 + (Math.abs(hash) % 10) * 0.06
+        const amp = i === 0 ? 2.5 : 6 // Larger amplitude for visible movement
         offsets.set(node.id, {
           dx: Math.sin(t * speed + hash * 0.1) * amp,
           dy: Math.cos(t * speed * 0.7 + hash * 0.3) * amp,

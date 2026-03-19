@@ -75,21 +75,21 @@ function calculateSimilarity(a: Set<string>, b: Set<string>): number {
   let matches = 0
   for (const word of a) {
     if (b.has(word)) {
-      matches++
+      matches += 1.5 // Exact match is strong signal
       continue
     }
     for (const bWord of b) {
       if (word === bWord) continue
-      // Substring match for words 3+ chars
-      if (word.length >= 3 && bWord.length >= 3) {
+      // Substring match for words 2+ chars
+      if (word.length >= 2 && bWord.length >= 2) {
         if (word.includes(bWord) || bWord.includes(word)) {
-          matches += 0.5
+          matches += 0.8
           continue
         }
       }
       // Korean prefix/stem match (e.g., 디자인 ↔ 디자이너)
       if (word.length >= 2 && bWord.length >= 2 && koreanPrefixMatch(word, bWord)) {
-        matches += 0.7
+        matches += 1.0
       }
     }
   }
@@ -209,7 +209,7 @@ export function findAutoLinks(
       if (token.length >= 2 && ndesc.includes(token)) score += 1.0
     }
 
-    if (score >= 2.0) {
+    if (score >= 1.0) {
       scored.push({ node, score })
     }
   }

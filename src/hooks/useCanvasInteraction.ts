@@ -16,6 +16,7 @@ export function useCanvasInteraction(
   const interactionRef = useRef(state.interaction)
   interactionRef.current = state.interaction
   const didDragRef = useRef(false)
+  const dragStartRef = useRef<{ x: number; y: number } | null>(null)
 
   const getCanvasPos = useCallback((e: React.PointerEvent | React.WheelEvent | React.MouseEvent) => {
     const rect = canvasRef.current?.getBoundingClientRect()
@@ -42,6 +43,9 @@ export function useCanvasInteraction(
     const nodes = nodesRef.current ?? state.nodes
     const cvp = getCenteredVp()
     const hit = hitTestNode(pos.x, pos.y, nodes, cvp)
+
+    didDragRef.current = false
+    dragStartRef.current = { x: pos.x, y: pos.y }
 
     if (hit) {
       // Always select the node immediately on pointer down
@@ -86,6 +90,14 @@ export function useCanvasInteraction(
     const cvp = getCenteredVp()
 
     if (interaction.type === 'dragging-node') {
+      // Track if actual movement happened (> 4px threshold)
+      if (dragStartRef.current) {
+        const dx = pos.x - dragStartRef.current.x
+        const dy = pos.y - dragStartRef.current.y
+        if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+          didDragRef.current = true
+        }
+      }
       const world = screenToWorld(pos.x, pos.y, cvp)
       dispatch({
         type: 'PIN_NODE',
@@ -126,7 +138,7 @@ export function useCanvasInteraction(
 
     if (interaction.type === 'dragging-node') {
       dispatch({ type: 'UNPIN_NODE', nodeId: interaction.nodeId })
-      didDragRef.current = true
+      // didDragRef is already set in onPointerMove if actual movement occurred
       reheat(0.5)
     } else if (interaction.type === 'creating-edge') {
       const pos = getCanvasPos(e)
