@@ -77,11 +77,31 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
   )
 }
 
+// ===== Screensaver =====
+function Screensaver({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div className="screensaver" onClick={onDismiss}>
+      <CosmosBg />
+      <div className="screensaver__content">
+        <div className="screensaver__logo">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="2" />
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+          </svg>
+        </div>
+        <h1 className="screensaver__title">Cosmos Note</h1>
+        <p className="screensaver__hint">화면을 누르면 해제됩니다</p>
+      </div>
+    </div>
+  )
+}
+
 function AppContent() {
   const { theme } = useTheme()
   const mainRef = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ w: 0, h: 0 })
   const [view, setView] = useState<ViewMode>('graph')
+  const [screensaver, setScreensaver] = useState(false)
   const reheatRef = useRef<(() => void) | null>(null)
   const dispatch = useGraphDispatch()
 
@@ -126,8 +146,9 @@ function AppContent() {
 
   return (
     <div className="app">
+      {screensaver && <Screensaver onDismiss={() => setScreensaver(false)} />}
       {theme === 'cosmos' && <CosmosBg />}
-      <Sidebar view={view} onViewChange={setView} />
+      <Sidebar view={view} onViewChange={setView} onScreensaver={() => setScreensaver(true)} />
       <main className="main" ref={mainRef}>
         <Header onReheat={handleReheat} />
         {view === 'graph' ? (

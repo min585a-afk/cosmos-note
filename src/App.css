@@ -3198,212 +3198,413 @@
   transform: translateY(0);
 }
 
-/* ===== Quest Page ===== */
-.quest-page {
-  padding: 32px;
-  max-width: 680px;
-  margin: 0 auto;
-  height: 100%;
-  overflow-y: auto;
-}
-.quest-page__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-}
-.quest-page__title-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.quest-page__title-row h2 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-.quest-page__stats {
-  display: flex;
-  gap: 16px;
-}
-.quest-page__stat {
-  font-size: 13px;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.quest-page__stat-num {
-  font-weight: 600;
-  color: var(--accent);
-  font-size: 16px;
-}
-.quest-page__stat--done .quest-page__stat-num {
-  color: var(--node-personal, #34d399);
-}
-
-/* Quest page add */
-.quest-page__add {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 28px;
-}
-.quest-page__input {
-  flex: 1;
-  padding: 10px 14px;
-  border-radius: 8px;
-  border: 1px solid rgba(167, 139, 250, 0.2);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text-primary);
-  font-size: 13px;
-  outline: none;
-  transition: border-color 200ms;
-}
-.quest-page__input::placeholder {
-  color: var(--text-muted);
-}
-.quest-page__input:focus {
-  border-color: var(--accent);
-}
-.quest-page__add-btn {
-  padding: 10px 16px;
-  border-radius: 8px;
-  border: none;
-  background: var(--accent);
-  color: white;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 200ms;
-}
-.quest-page__add-btn:hover {
-  background: var(--accent-hover, #8b6bfa);
-}
-
-/* Quest page sections */
-.quest-page__section {
-  margin-bottom: 24px;
-}
-.quest-page__section-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-muted);
-  margin: 0 0 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.quest-page__section-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  padding: 4px 0;
-  margin-bottom: 8px;
-  color: var(--text-muted);
-}
-.quest-page__section-toggle:hover {
-  color: var(--text-secondary);
-}
-.quest-page__chevron {
-  transition: transform 200ms;
-}
-.quest-page__chevron--open {
-  transform: rotate(90deg);
-}
-
-/* Quest page list */
-.quest-page__list {
+/* ===== Diablo 2 Quest Page ===== */
+.d2quest {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 20px;
 }
-.quest-page__empty {
-  font-size: 13px;
-  color: var(--text-muted);
+.d2quest__window {
+  width: 380px;
+  background: linear-gradient(180deg, #1a1520 0%, #0d0a12 100%);
+  border: 2px solid #3a2a1a;
+  border-radius: 4px;
+  box-shadow:
+    inset 0 0 30px rgba(0,0,0,0.5),
+    0 0 20px rgba(0,0,0,0.8),
+    0 0 2px rgba(180,140,80,0.3);
+  position: relative;
+}
+.d2quest__titlebar {
   text-align: center;
-  padding: 20px 0;
+  padding: 12px 0 8px;
+  border-bottom: 1px solid rgba(180,140,80,0.2);
+}
+.d2quest__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #c8a872;
+  letter-spacing: 2px;
 }
 
-/* Quest page items */
-.quest-page__item {
+/* Tabs */
+.d2quest__tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(180,140,80,0.15);
+}
+.d2quest__tab {
+  border: 1px solid rgba(180,140,80,0.2);
+  background: rgba(30,20,15,0.8);
+  color: #8a7a60;
+  padding: 4px 20px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 200ms;
+}
+.d2quest__tab--active {
+  background: rgba(180,140,80,0.15);
+  color: #c8a872;
+  border-color: rgba(180,140,80,0.4);
+}
+.d2quest__tab:hover { color: #c8a872; }
+.d2quest__tab-roman { font-family: serif; font-weight: 700; }
+
+/* Grid */
+.d2quest__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 16px 20px;
+}
+.d2quest__slot {
+  aspect-ratio: 1;
+  border: 1px solid rgba(80,60,40,0.4);
+  background: rgba(15,10,8,0.7);
+  border-radius: 4px;
+  cursor: default;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.03);
+  justify-content: center;
   transition: all 200ms;
+  position: relative;
+}
+.d2quest__slot--filled {
+  cursor: pointer;
+  border-color: rgba(120,90,50,0.4);
+}
+.d2quest__slot--filled:hover {
+  border-color: rgba(200,168,114,0.6);
+  background: rgba(30,20,10,0.9);
+}
+.d2quest__slot--selected {
+  border-color: #c8a872 !important;
+  box-shadow: 0 0 8px rgba(200,168,114,0.3), inset 0 0 12px rgba(200,168,114,0.1);
+}
+.d2quest__slot--done {
+  background: rgba(40,30,10,0.6);
+}
+.d2quest__slot--destroying {
+  animation: quest-destroy 800ms ease-out forwards;
+}
+.d2quest__slot-frame {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.d2quest__slot-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.d2quest__slot-empty {
+  width: 16px;
+  height: 16px;
+  border: 1px solid rgba(60,40,30,0.3);
+  border-radius: 2px;
+}
+
+/* Detail */
+.d2quest__detail {
+  padding: 12px 20px;
+  min-height: 60px;
+  border-top: 1px solid rgba(180,140,80,0.15);
+}
+.d2quest__detail-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #c8a872;
+  margin: 0 0 4px;
+}
+.d2quest__detail-desc {
+  font-size: 11px;
+  color: #8a7a60;
+  margin: 0;
+}
+.d2quest__detail-empty {
+  font-size: 12px;
+  color: #5a4a3a;
+  margin: 0;
+  text-align: center;
+}
+
+/* Actions */
+.d2quest__actions {
+  display: flex;
+  gap: 8px;
+  padding: 8px 20px 14px;
+  justify-content: center;
+}
+.d2quest__btn {
+  padding: 6px 16px;
+  border: 1px solid rgba(180,140,80,0.3);
+  border-radius: 3px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 200ms;
+}
+.d2quest__btn--complete {
+  background: rgba(180,140,80,0.15);
+  color: #c8a872;
+}
+.d2quest__btn--complete:hover {
+  background: rgba(180,140,80,0.3);
+}
+.d2quest__btn--undo {
+  background: rgba(100,80,60,0.15);
+  color: #8a7a60;
+}
+.d2quest__btn--undo:hover { background: rgba(100,80,60,0.3); }
+.d2quest__btn--delete {
+  background: rgba(120,40,40,0.15);
+  color: #a06060;
+}
+.d2quest__btn--delete:hover { background: rgba(120,40,40,0.3); }
+
+/* Add quest */
+.d2quest__add {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  width: 380px;
+}
+.d2quest__add-input {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(180,140,80,0.2);
+  background: rgba(15,10,8,0.8);
+  color: #c8a872;
+  font-size: 12px;
+  outline: none;
+}
+.d2quest__add-input::placeholder { color: #5a4a3a; }
+.d2quest__add-input:focus { border-color: rgba(180,140,80,0.5); }
+.d2quest__add-btn {
+  padding: 8px 14px;
+  border: 1px solid rgba(180,140,80,0.3);
+  border-radius: 4px;
+  background: rgba(180,140,80,0.15);
+  color: #c8a872;
+  cursor: pointer;
+  font-size: 14px;
+}
+.d2quest__add-btn:hover { background: rgba(180,140,80,0.3); }
+
+/* ===== Screensaver ===== */
+.screensaver {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.screensaver__content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  animation: screensaver-float 6s ease-in-out infinite;
+}
+.screensaver__logo {
+  margin-bottom: 16px;
+  opacity: 0.8;
+  animation: login-pulse 3s ease-in-out infinite;
+}
+.screensaver__title {
+  font-size: 32px;
+  font-weight: 300;
+  color: rgba(255,255,255,0.6);
+  letter-spacing: 6px;
+  margin: 0;
+}
+.screensaver__hint {
+  font-size: 12px;
+  color: rgba(255,255,255,0.2);
+  margin-top: 24px;
+  animation: twinkle 3s ease-in-out infinite;
+}
+@keyframes screensaver-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* ===== Skill Node Graph ===== */
+.skill-graph {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   position: relative;
   overflow: hidden;
 }
-.quest-page__item:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-.quest-page__item--done {
-  opacity: 0.55;
-}
-.quest-page__item--done .quest-page__item-title {
-  text-decoration: line-through;
-}
-.quest-page__item--destroying {
-  animation: quest-destroy 800ms ease-out forwards;
-}
-
-.quest-page__check {
-  border: none;
-  background: none;
-  cursor: pointer;
-  color: var(--text-muted);
+.skill-graph__toolbar {
   display: flex;
   align-items: center;
-  flex-shrink: 0;
-  padding: 0;
-  transition: color 200ms;
-}
-.quest-page__check:hover {
-  color: var(--accent);
-}
-.quest-page__check--done {
-  color: var(--accent);
-}
-
-.quest-page__item-content {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.quest-page__item-title {
-  font-size: 14px;
-  color: var(--text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.quest-page__item-date {
+  justify-content: space-between;
+  padding: 8px 16px;
   font-size: 11px;
   color: var(--text-muted);
 }
-.quest-page__item-delete {
+.skill-graph__hint {
+  opacity: 0.6;
+}
+.skill-graph__complete {
+  color: #00ff87;
+  font-weight: 600;
+}
+.skill-graph__svg {
+  flex: 1;
+  width: 100%;
+  cursor: default;
+  user-select: none;
+}
+.skill-graph-node {
+  cursor: grab;
+}
+.skill-graph-node:active {
+  cursor: grabbing;
+}
+
+/* Skill graph add overlay */
+.skill-graph__add-overlay {
+  position: absolute;
+  z-index: 10;
+}
+.skill-graph__add-input {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(167,139,250,0.4);
+  background: rgba(12,14,24,0.95);
+  color: var(--text-primary);
+  font-size: 12px;
+  outline: none;
+  width: 160px;
+}
+.skill-graph__add-input:focus {
+  border-color: var(--accent);
+}
+
+/* Skill graph detail panel */
+.skill-graph__detail {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  width: 260px;
+  background: rgba(12,14,24,0.95);
+  border: 1px solid rgba(167,139,250,0.2);
+  border-radius: 10px;
+  padding: 14px;
+  backdrop-filter: blur(10px);
+}
+.skill-graph__detail-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.skill-graph__detail-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 2px solid var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  color: transparent;
+  transition: all 200ms;
+}
+.skill-graph__detail-check--on {
+  background: #00ff87;
+  border-color: #00ff87;
+  color: #000;
+}
+.skill-graph__detail-status {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.skill-graph__detail-title {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  outline: none;
+  margin-bottom: 6px;
+}
+.skill-graph__detail-title:focus {
+  border-color: rgba(167,139,250,0.2);
+  background: rgba(255,255,255,0.03);
+}
+.skill-graph__detail-desc {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  outline: none;
+  resize: none;
+  font-family: inherit;
+}
+.skill-graph__detail-desc:focus {
+  border-color: rgba(167,139,250,0.2);
+  background: rgba(255,255,255,0.03);
+}
+.skill-graph__detail-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.skill-graph__detail-delete,
+.skill-graph__detail-close {
+  flex: 1;
+  padding: 6px 0;
+  border: 1px solid rgba(167,139,250,0.15);
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-muted);
+  transition: all 200ms;
+}
+.skill-graph__detail-delete:hover {
+  background: rgba(255,60,60,0.1);
+  color: #ff6b6b;
+  border-color: rgba(255,60,60,0.3);
+}
+.skill-graph__detail-close:hover {
+  background: rgba(255,255,255,0.05);
+  color: var(--text-secondary);
+}
+
+/* Sidebar logo as button */
+.sidebar__logo {
   border: none;
   background: none;
   cursor: pointer;
-  color: var(--text-muted);
-  font-size: 16px;
-  padding: 0 4px;
-  opacity: 0;
-  transition: opacity 200ms;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 200ms;
 }
-.quest-page__item:hover .quest-page__item-delete {
-  opacity: 1;
-}
-.quest-page__item-delete:hover {
-  color: var(--accent-tertiary);
+.sidebar__logo:hover {
+  background: rgba(167,139,250,0.15);
 }
 
 /* ===== Scrollbar ===== */

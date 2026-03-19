@@ -144,7 +144,7 @@ export function skillTreeReducer(state: SkillTreeState, action: SkillTreeAction)
 
     // ===== Flow Skill Tree (가로형) =====
     case 'CREATE_FLOW_TREE': {
-      const ft: FlowTree = { id: genId('ft-'), name: action.name, nodes: [], createdAt: Date.now() }
+      const ft: FlowTree = { id: genId('ft-'), name: action.name, nodes: [], edges: [], createdAt: Date.now() }
       return { ...state, flowTrees: [...state.flowTrees, ft], activeFlowTreeId: ft.id }
     }
 
@@ -180,6 +180,7 @@ export function skillTreeReducer(state: SkillTreeState, action: SkillTreeAction)
           const newNode: FlowNode = {
             id: genId('fn-'), label: action.label, description: '', status: 'pending',
             order: newOrder, parentId: null, tags: [],
+            x: 200 + mainChain.length * 180, y: 200,
           }
           return { ...t, nodes: [...shifted, newNode] }
         }),
@@ -226,9 +227,38 @@ export function skillTreeReducer(state: SkillTreeState, action: SkillTreeAction)
             const idx = main.indexOf(n)
             return { ...n, order: idx }
           })
-          return { ...t, nodes: reordered }
+          return { ...t, nodes: reordered, edges: (t.edges || []).filter(e => !toRemove.has(e.source) && !toRemove.has(e.target)) }
         }),
         selectedNodeId: state.selectedNodeId === action.nodeId ? null : state.selectedNodeId,
+      }
+
+    case 'MOVE_FLOW_NODE':
+      return {
+        ...state,
+        flowTrees: state.flowTrees.map(t => {
+          if (t.id !== action.treeId) return t
+          return { ...t, nodes: t.nodes.map(n => n.id === action.nodeId ? { ...n, x: action.x, y: action.y } : n) }
+        }),
+      }
+
+    case 'ADD_FLOW_EDGE':
+      return {
+        ...state,
+        flowTrees: state.flowTrees.map(t => {
+          if (t.id !== action.treeId) return t
+          // Prevent duplicate edges
+          if (t.edges?.some(e => e.source === action.edge.source && e.target === action.edge.target)) return t
+          return { ...t, edges: [...(t.edges || []), action.edge] }
+        }),
+      }
+
+    case 'REMOVE_FLOW_EDGE':
+      return {
+        ...state,
+        flowTrees: state.flowTrees.map(t => {
+          if (t.id !== action.treeId) return t
+          return { ...t, edges: (t.edges || []).filter(e => e.id !== action.edgeId) }
+        }),
       }
 
     case 'LOAD_FLOW_TREES':

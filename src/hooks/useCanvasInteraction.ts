@@ -15,6 +15,7 @@ export function useCanvasInteraction(
   const dispatch = useGraphDispatch()
   const interactionRef = useRef(state.interaction)
   interactionRef.current = state.interaction
+  const didDragRef = useRef(false)
 
   const getCanvasPos = useCallback((e: React.PointerEvent | React.WheelEvent | React.MouseEvent) => {
     const rect = canvasRef.current?.getBoundingClientRect()
@@ -123,7 +124,7 @@ export function useCanvasInteraction(
 
     if (interaction.type === 'dragging-node') {
       dispatch({ type: 'UNPIN_NODE', nodeId: interaction.nodeId })
-      dispatch({ type: 'SET_SELECTED', nodeId: interaction.nodeId })
+      didDragRef.current = true
       reheat(0.5)
     } else if (interaction.type === 'creating-edge') {
       const pos = getCanvasPos(e)
@@ -195,6 +196,8 @@ export function useCanvasInteraction(
     if (e.detail > 1) return
     // Don't interfere with creating-node mode
     if (interactionRef.current.type === 'creating-node') return
+    // Skip selection after drag
+    if (didDragRef.current) { didDragRef.current = false; return }
     const pos = getCanvasPos(e)
     const nodes = nodesRef.current ?? state.nodes
     const cvp = getCenteredVp()

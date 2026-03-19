@@ -3,7 +3,7 @@ import { useSkillTreeState, useSkillTreeDispatch } from '../state/SkillTreeConte
 import { useGraphDispatch } from '../state/GraphContext'
 import { generateSuggestions, generatePathSummary } from '../utils/skillTreeAI'
 import { createNode, generateId } from '../state/graphReducer'
-import type { SkillNode, SkillNodeStatus, FlowNodeStatus } from '../types/skillTree'
+import type { SkillNode, SkillNodeStatus, FlowNodeStatus, FlowEdge } from '../types/skillTree'
 
 // ===== Analysis Tree =====
 const NODE_W = 160
@@ -144,36 +144,107 @@ function hexPath(cx: number, cy: number, r: number): string {
   return pts.join(' ')
 }
 
-// ===== Flow Skill Tree (가로형 + 육각형 노드) =====
-function FlowSkillTreeView({ treeId }: { treeId: string }) {
+// ===== Skill Node Graph (시각적 노드 연결 시스템) =====
+const SKILL_NODE_R = 28
+
+function SkillNodeGraph({ treeId }: { treeId: string }) {
   const state = useSkillTreeState()
   const dispatch = useSkillTreeDispatch()
   const tree = state.flowTrees.find(t => t.id === treeId)
-  const [addingAfter, setAddingAfter] = useState<string | null | 'end'>(null)
+  const svgRef = useRef<SVGSVGElement>(null)
+  const [dragging, setDragging] = useState<{ nodeId: string; offX: number; offY: number } | null>(null)
+  const [connecting, setConnecting] = useState<{ sourceId: string; mx: number; my: number } | null>(null)
+  const [addingAt, setAddingAt] = useState<{ x: number; y: number } | null>(null)
   const [newLabel, setNewLabel] = useState('')
-  const [addingBranch, setAddingBranch] = useState<string | null>(null)
-  const [branchLabel, setBranchLabel] = useState('')
-  const [showSummary, setShowSummary] = useState(false)
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const [viewBox, setViewBox] = useState({ x: 0, y: 0 })
+  const [panning, setPanning] = useState<{ startX: number; startY: number; startVbX: number; startVbY: number } | null>(null)
 
   if (!tree) return null
 
-  const mainChain = tree.nodes.filter(n => n.parentId === null).sort((a, b) => a.order - b.order)
+  const edges = tree.edges || []
+  const nodes = tree.nodes
 
-  const handleAddNode = () => {
-    if (!newLabel.trim()) return
-    const afterId = addingAfter === 'end' ? (mainChain.length > 0 ? mainChain[mainChain.length - 1].id : null) : addingAfter
-    dispatch({ type: 'ADD_FLOW_NODE', treeId, label: newLabel.trim(), afterNodeId: afterId })
-    setNewLabel('')
-    setAddingAfter(null)
-    setTimeout(() => scrollRef.current?.scrollTo({ left: scrollRef.current.scrollWidth, behavior: 'smooth' }), 100)
+  const getSvgPos = (e: React.MouseEvent) => {
+    const rect = svgRef.current?.getBoundingClientRect()
+    if (!rect) return { x: 0, y: 0 }
+    return { x: e.clientX - rect.left + viewBox.x, y: e.clientY - rect.top + viewBox.y }
   }
 
-  const handleAddBranch = () => {
-    if (!branchLabel.trim() || !addingBranch) return
-    dispatch({ type: 'ADD_FLOW_BRANCH', treeId, parentId: addingBranch, label: branchLabel.trim() })
-    setBranchLabel('')
-    setAddingBranch(null)
+  const handleNodePointerDown = (e: React.MouseEvent, nodeId: string) => {
+    e.stopPropagation()
+    const node = nodes.find(n => n.id === nodeId)
+    if (!node) return
+    const pos = getSvgPos(e)
+    if (e.shiftKey) {
+      // Shift+drag to connect
+      setConnecting({ sourceId: nodeId, mx: pos.x, my: pos.y })
+    } else {
+      setDragging({ nodeId, offX: pos.x - (node.x || 0), offY: pos.y - (node.y || 0) })
+    }
+  }
+
+  const handleSvgPointerDown = (e: React.MouseEvent) => {
+    if (e.target === svgRef.current) {
+      const pos = getSvgPos(e)
+      setPanning({ startX: e.clientX, startY: e.clientY, startVbX: viewBox.x, startVbY: viewBox.y })
+      dispatch({ type: 'SET_SELECTED_NODE', nodeId: null })
+    }
+  }
+
+  const handlePointerMove = (e: React.MouseEvent) => {
+    if (dragging) {
+      const pos = getSvgPos(e)
+      dispatch({ type: 'MOVE_FLOW_NODE', treeId, nodeId: dragging.nodeId, x: pos.x - dragging.offX, y: pos.y - dragging.offY })
+    } else if (connecting) {
+      const pos = getSvgPos(e)
+      setConnecting({ ...connecting, mx: pos.x, my: pos.y })
+    } else if (panning) {
+      const dx = e.clientX - panning.startX
+      const dy = e.clientY - panning.startY
+      setViewBox({ x: panning.startVbX - dx, y: panning.startVbY - dy })
+    }
+  }
+
+  const handlePointerUp = (e: React.MouseEvent) => {
+    if (connecting) {
+      // Check if released on a node
+      const pos = getSvgPos(e)
+      const target = nodes.find(n => {
+        const nx = n.x || 0, ny = n.y || 0
+        return Math.hypot(pos.x - nx, pos.y - ny) < SKILL_NODE_R + 10 && n.id !== connecting.sourceId
+      })
+      if (target) {
+        dispatch({ type: 'ADD_FLOW_EDGE', treeId, edge: { id: `fe-${Date.now()}`, source: connecting.sourceId, target: target.id } })
+      }
+      setConnecting(null)
+    }
+    setDragging(null)
+    setPanning(null)
+  }
+
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    if ((e.target as SVGElement).closest('.skill-graph-node')) return
+    const pos = getSvgPos(e)
+    setAddingAt(pos)
+    setNewLabel('')
+  }
+
+  const handleAddNode = () => {
+    if (!newLabel.trim() || !addingAt) return
+    const mainChain = nodes.filter(n => n.parentId === null)
+    dispatch({ type: 'ADD_FLOW_NODE', treeId, label: newLabel.trim(), afterNodeId: mainChain.length > 0 ? mainChain[mainChain.length - 1].id : null })
+    // Move the newly created node to the click position
+    setTimeout(() => {
+      const updated = state.flowTrees.find(t => t.id === treeId)
+      if (updated) {
+        const lastNode = updated.nodes[updated.nodes.length - 1]
+        if (lastNode && addingAt) {
+          dispatch({ type: 'MOVE_FLOW_NODE', treeId, nodeId: lastNode.id, x: addingAt.x, y: addingAt.y })
+        }
+      }
+    }, 10)
+    setAddingAt(null)
+    setNewLabel('')
   }
 
   const toggleDone = (nodeId: string, current: FlowNodeStatus) => {
@@ -181,162 +252,136 @@ function FlowSkillTreeView({ treeId }: { treeId: string }) {
     dispatch({ type: 'UPDATE_FLOW_NODE', treeId, nodeId, updates: { status: next } })
   }
 
-  const selectedNode = tree.nodes.find(n => n.id === state.selectedNodeId)
-  const allMainDone = mainChain.length > 0 && mainChain.every(n => n.status === 'done')
+  const selectedNode = nodes.find(n => n.id === state.selectedNodeId)
+  const allDone = nodes.length > 0 && nodes.every(n => n.status === 'done')
 
-  // Generate summary of all nodes
-  const generateTreeSummary = () => {
-    const lines: string[] = []
-    lines.push(`## ${tree.name} - 스킬트리 종합 요약\n`)
-    mainChain.forEach((node, i) => {
-      const branches = tree.nodes.filter(n => n.parentId === node.id).sort((a, b) => a.order - b.order)
-      const statusIcon = node.status === 'done' ? '✅' : '⬜'
-      lines.push(`### ${statusIcon} 단계 ${i + 1}: ${node.label}`)
-      if (node.description) lines.push(`> ${node.description}`)
-      if (branches.length > 0) {
-        branches.forEach(b => {
-          const bIcon = b.status === 'done' ? '✅' : '⬜'
-          lines.push(`  - ${bIcon} ${b.label}${b.description ? ': ' + b.description : ''}`)
-        })
-      }
-      lines.push('')
-    })
-    const doneCount = mainChain.filter(n => n.status === 'done').length
-    lines.push(`---\n**진행률:** ${doneCount}/${mainChain.length} 단계 완료 (${Math.round(doneCount / mainChain.length * 100)}%)`)
-    return lines.join('\n')
-  }
+  const rect = svgRef.current?.getBoundingClientRect()
+  const svgW = rect?.width || 800
+  const svgH = rect?.height || 500
 
   return (
-    <div className="flow-tree">
-      <div className="flow-scroll" ref={scrollRef}>
-        <div className="flow-chain">
-          {mainChain.map((node, i) => {
-            const branches = tree.nodes.filter(n => n.parentId === node.id).sort((a, b) => a.order - b.order)
-            const isSelected = state.selectedNodeId === node.id
-            const isDone = node.status === 'done'
-            const prevAllDone = mainChain.slice(0, i).every(n => n.status === 'done')
-
-            return (
-              <div key={node.id} className="flow-column">
-                {/* Arrow from previous */}
-                {i > 0 && (
-                  <div className="flow-arrow">
-                    <svg width="32" height="20" viewBox="0 0 32 20">
-                      <line x1="0" y1="10" x2="24" y2="10" stroke={mainChain[i - 1].status === 'done' ? '#00ff87' : '#3a3a4a'} strokeWidth="2" />
-                      <polygon points="24,5 32,10 24,15" fill={mainChain[i - 1].status === 'done' ? '#00ff87' : '#3a3a4a'} />
-                    </svg>
-                  </div>
-                )}
-
-                {/* Main node - hexagonal stamp style */}
-                <div className={`flow-node ${isDone ? 'flow-node--done' : ''} ${prevAllDone && !isDone ? 'flow-node--next' : ''} ${isSelected ? 'flow-node--selected' : ''}`}
-                  onClick={() => dispatch({ type: 'SET_SELECTED_NODE', nodeId: node.id })}>
-                  <div className={`flow-hex ${isDone ? 'flow-hex--done' : ''} ${prevAllDone && !isDone ? 'flow-hex--ready' : ''}`}
-                    onClick={e => { e.stopPropagation(); toggleDone(node.id, node.status) }}
-                    title={isDone ? '완료됨' : prevAllDone ? '클릭하여 찍기!' : '잠김'}>
-                    <svg width="64" height="64" viewBox="0 0 64 64" className="flow-hex__svg">
-                      <polygon points={hexPath(32, 32, 28)} className="flow-hex__bg" />
-                      <polygon points={hexPath(32, 32, 28)} className="flow-hex__border" />
-                      {isDone && <polygon points={hexPath(32, 32, 24)} className="flow-hex__inner" />}
-                    </svg>
-                    <span className="flow-hex__icon">{isDone ? '✦' : prevAllDone && !isDone ? '◇' : '🔒'}</span>
-                    <span className="flow-hex__num">{i + 1}</span>
-                  </div>
-                  <div className="flow-node__label">{node.label}</div>
-                </div>
-
-                {/* Branches below */}
-                {branches.length > 0 && (
-                  <div className="flow-branches">
-                    <div className="flow-branch-line" />
-                    {branches.map(branch => {
-                      const brDone = branch.status === 'done'
-                      return (
-                        <div key={branch.id} className={`flow-branch ${brDone ? 'flow-branch--done' : ''} ${state.selectedNodeId === branch.id ? 'flow-branch--selected' : ''}`}
-                          onClick={() => dispatch({ type: 'SET_SELECTED_NODE', nodeId: branch.id })}>
-                          <div className={`flow-branch__stamp ${brDone ? 'flow-branch__stamp--done' : ''}`}
-                            onClick={e => { e.stopPropagation(); toggleDone(branch.id, branch.status) }}>
-                            {brDone ? '✦' : '○'}
-                          </div>
-                          <span className="flow-branch__label">{branch.label}</span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-
-                {/* Add branch button */}
-                {addingBranch === node.id ? (
-                  <div className="flow-branch-input">
-                    <input autoFocus value={branchLabel} onChange={e => setBranchLabel(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') handleAddBranch(); if (e.key === 'Escape') setAddingBranch(null) }}
-                      placeholder="가지 노드..." className="flow-branch-input__field" />
-                  </div>
-                ) : (
-                  <button className="flow-add-branch" onClick={() => setAddingBranch(node.id)}>+ 가지</button>
-                )}
-              </div>
-            )
-          })}
-
-          {/* Add node */}
-          {addingAfter !== null ? (
-            <div className="flow-column">
-              {mainChain.length > 0 && <div className="flow-arrow"><svg width="32" height="20" viewBox="0 0 32 20"><line x1="0" y1="10" x2="24" y2="10" stroke="#3a3a4a" strokeWidth="2" strokeDasharray="4 4" /><polygon points="24,5 32,10 24,15" fill="#3a3a4a" /></svg></div>}
-              <div className="flow-node-input">
-                <input autoFocus value={newLabel} onChange={e => setNewLabel(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') handleAddNode(); if (e.key === 'Escape') { setAddingAfter(null); setNewLabel('') } }}
-                  placeholder="단계 이름..." className="flow-node-input__field" />
-              </div>
-            </div>
-          ) : (
-            <button className="flow-add-node" onClick={() => setAddingAfter('end')}>
-              <span>+</span>
-              <span>단계 추가</span>
-            </button>
-          )}
-        </div>
+    <div className="skill-graph">
+      <div className="skill-graph__toolbar">
+        <span className="skill-graph__hint">더블클릭: 노드 추가 | Shift+드래그: 연결 | 드래그: 이동</span>
+        {allDone && nodes.length > 0 && <span className="skill-graph__complete">모든 노드 완료!</span>}
       </div>
 
-      {/* 최종 완료 바 + 종합 설명 */}
-      {allMainDone && (
-        <div className="flow-complete-bar">
-          <span className="flow-complete-bar__text">모든 단계 완료!</span>
-          <button className="flow-complete-bar__btn" onClick={() => setShowSummary(!showSummary)}>
-            📋 종합 설명 보기
-          </button>
+      <svg
+        ref={svgRef}
+        className="skill-graph__svg"
+        viewBox={`${viewBox.x} ${viewBox.y} ${svgW} ${svgH}`}
+        onMouseDown={handleSvgPointerDown}
+        onMouseMove={handlePointerMove}
+        onMouseUp={handlePointerUp}
+        onDoubleClick={handleDoubleClick}
+      >
+        {/* Edges */}
+        {edges.map(edge => {
+          const src = nodes.find(n => n.id === edge.source)
+          const tgt = nodes.find(n => n.id === edge.target)
+          if (!src || !tgt) return null
+          const sx = src.x || 0, sy = src.y || 0
+          const tx = tgt.x || 0, ty = tgt.y || 0
+          const bothDone = src.status === 'done' && tgt.status === 'done'
+          return (
+            <g key={edge.id}>
+              <line x1={sx} y1={sy} x2={tx} y2={ty}
+                stroke={bothDone ? '#00ff87' : 'rgba(167,139,250,0.4)'}
+                strokeWidth={bothDone ? 2 : 1.5}
+                strokeDasharray={bothDone ? undefined : '6 4'}
+              />
+              {/* Arrow */}
+              {(() => {
+                const angle = Math.atan2(ty - sy, tx - sx)
+                const ax = tx - Math.cos(angle) * (SKILL_NODE_R + 4)
+                const ay = ty - Math.sin(angle) * (SKILL_NODE_R + 4)
+                return (
+                  <polygon
+                    points={`${ax},${ay} ${ax - 8 * Math.cos(angle - 0.4)},${ay - 8 * Math.sin(angle - 0.4)} ${ax - 8 * Math.cos(angle + 0.4)},${ay - 8 * Math.sin(angle + 0.4)}`}
+                    fill={bothDone ? '#00ff87' : 'rgba(167,139,250,0.5)'}
+                  />
+                )
+              })()}
+            </g>
+          )
+        })}
+
+        {/* Connecting line preview */}
+        {connecting && (() => {
+          const src = nodes.find(n => n.id === connecting.sourceId)
+          if (!src) return null
+          return <line x1={src.x || 0} y1={src.y || 0} x2={connecting.mx} y2={connecting.my}
+            stroke="rgba(167,139,250,0.6)" strokeWidth={2} strokeDasharray="4 4" />
+        })()}
+
+        {/* Nodes */}
+        {nodes.map(node => {
+          const nx = node.x || 0
+          const ny = node.y || 0
+          const isDone = node.status === 'done'
+          const isSelected = state.selectedNodeId === node.id
+          return (
+            <g key={node.id} className="skill-graph-node"
+              onMouseDown={e => handleNodePointerDown(e, node.id)}
+              onClick={e => { e.stopPropagation(); dispatch({ type: 'SET_SELECTED_NODE', nodeId: node.id }) }}
+              onDoubleClick={e => { e.stopPropagation(); toggleDone(node.id, node.status) }}
+              style={{ cursor: dragging ? 'grabbing' : 'grab' }}
+            >
+              {/* Glow */}
+              {isSelected && <polygon points={hexPath(nx, ny, SKILL_NODE_R + 6)} fill="none" stroke="var(--accent)" strokeWidth={2} opacity={0.4} />}
+              {isDone && <polygon points={hexPath(nx, ny, SKILL_NODE_R + 4)} fill="none" stroke="#00ff87" strokeWidth={1} opacity={0.3} />}
+
+              {/* Hex body */}
+              <polygon points={hexPath(nx, ny, SKILL_NODE_R)}
+                fill={isDone ? 'rgba(0,255,135,0.1)' : 'rgba(12,14,24,0.9)'}
+                stroke={isDone ? '#00ff87' : isSelected ? 'var(--accent)' : 'rgba(167,139,250,0.3)'}
+                strokeWidth={isDone ? 2 : 1.5}
+              />
+
+              {/* Icon */}
+              <text x={nx} y={ny + 1} textAnchor="middle" dominantBaseline="middle"
+                fontSize={isDone ? 16 : 14} fill={isDone ? '#00ff87' : 'rgba(167,139,250,0.8)'}>
+                {isDone ? '✦' : '◇'}
+              </text>
+
+              {/* Label */}
+              <text x={nx} y={ny + SKILL_NODE_R + 14} textAnchor="middle"
+                fill={isDone ? '#00ff87' : '#c0c0e0'} fontSize={11} fontWeight={500}
+                fontFamily="'Pretendard Variable', system-ui, sans-serif">
+                {node.label.length > 10 ? node.label.slice(0, 10) + '..' : node.label}
+              </text>
+            </g>
+          )
+        })}
+      </svg>
+
+      {/* Add node input overlay */}
+      {addingAt && (
+        <div className="skill-graph__add-overlay" style={{ left: addingAt.x - viewBox.x - 80, top: addingAt.y - viewBox.y - 20 }}>
+          <input autoFocus value={newLabel} onChange={e => setNewLabel(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleAddNode(); if (e.key === 'Escape') setAddingAt(null) }}
+            placeholder="노드 이름..." className="skill-graph__add-input" />
         </div>
       )}
 
-      {/* 종합 설명 패널 */}
-      {showSummary && allMainDone && (
-        <div className="flow-summary">
-          <div className="flow-summary__header">
-            <h3>스킬트리 종합 설명</h3>
-            <button onClick={() => setShowSummary(false)}>×</button>
-          </div>
-          <pre className="flow-summary__content">{generateTreeSummary()}</pre>
-        </div>
-      )}
-
-      {/* Detail panel for selected node */}
+      {/* Selected node detail */}
       {selectedNode && (
-        <div className="flow-detail">
-          <div className="flow-detail__header">
-            <div className={`flow-detail__check ${selectedNode.status === 'done' ? 'flow-detail__check--on' : ''}`}
+        <div className="skill-graph__detail">
+          <div className="skill-graph__detail-header">
+            <div className={`skill-graph__detail-check ${selectedNode.status === 'done' ? 'skill-graph__detail-check--on' : ''}`}
               onClick={() => toggleDone(selectedNode.id, selectedNode.status)}>
               {selectedNode.status === 'done' ? '✓' : ''}
             </div>
-            <span className="flow-detail__status">{selectedNode.status === 'done' ? 'ON' : 'OFF'}</span>
+            <span className="skill-graph__detail-status">{selectedNode.status === 'done' ? '완료' : '진행중'}</span>
           </div>
-          <input className="flow-detail__title" value={selectedNode.label}
+          <input className="skill-graph__detail-title" value={selectedNode.label}
             onChange={e => dispatch({ type: 'UPDATE_FLOW_NODE', treeId, nodeId: selectedNode.id, updates: { label: e.target.value } })} />
-          <textarea className="flow-detail__desc" value={selectedNode.description}
+          <textarea className="skill-graph__detail-desc" value={selectedNode.description}
             onChange={e => dispatch({ type: 'UPDATE_FLOW_NODE', treeId, nodeId: selectedNode.id, updates: { description: e.target.value } })}
-            placeholder="메모, 자료, 정보를 기록하세요..." rows={4} />
-          <div className="flow-detail__actions">
-            <button className="flow-detail__delete" onClick={() => dispatch({ type: 'REMOVE_FLOW_NODE', treeId, nodeId: selectedNode.id })}>삭제</button>
-            <button className="flow-detail__close" onClick={() => dispatch({ type: 'SET_SELECTED_NODE', nodeId: null })}>닫기</button>
+            placeholder="메모, 자료, 정보를 기록하세요..." rows={3} />
+          <div className="skill-graph__detail-actions">
+            <button className="skill-graph__detail-delete" onClick={() => dispatch({ type: 'REMOVE_FLOW_NODE', treeId, nodeId: selectedNode.id })}>삭제</button>
+            <button className="skill-graph__detail-close" onClick={() => dispatch({ type: 'SET_SELECTED_NODE', nodeId: null })}>닫기</button>
           </div>
         </div>
       )}
@@ -368,7 +413,6 @@ export function SkillTreeView() {
     setNewName(''); setShowCreate(false)
   }
 
-  // Quick create from placeholder + button
   const handleQuickCreate = () => {
     if (!quickName.trim()) return
     if (tab === 'analysis') { dispatch({ type: 'CREATE_TREE', name: quickName.trim() }); setShowRootInput(true) }
@@ -408,15 +452,15 @@ export function SkillTreeView() {
           <button className={`skilltree-tab ${tab === 'analysis' ? 'skilltree-tab--active' : ''}`}
             onClick={() => dispatch({ type: 'SET_TAB', tab: 'analysis' })}>🔍 분석트리</button>
           <button className={`skilltree-tab ${tab === 'skill' ? 'skilltree-tab--active' : ''}`}
-            onClick={() => dispatch({ type: 'SET_TAB', tab: 'skill' })}>🎮 스킬트리</button>
+            onClick={() => dispatch({ type: 'SET_TAB', tab: 'skill' })}>⚡ 스킬트리</button>
         </div>
         <div className="skilltree-sidebar__header">
-          <h3>{tab === 'analysis' ? '프로젝트 분석' : '작업 플로우'}</h3>
+          <h3>{tab === 'analysis' ? '프로젝트 분석' : '스킬 노드'}</h3>
           <button className="skilltree-sidebar__add" onClick={() => setShowCreate(true)}>+</button>
         </div>
         {showCreate && (
           <div className="skilltree-sidebar__create">
-            <input autoFocus placeholder={tab === 'analysis' ? '프로젝트 이름...' : '플로우 이름...'}
+            <input autoFocus placeholder={tab === 'analysis' ? '프로젝트 이름...' : '스킬트리 이름...'}
               value={newName} onChange={e => setNewName(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleCreate(); if (e.key === 'Escape') setShowCreate(false) }}
               className="skilltree-sidebar__input" />
@@ -431,14 +475,13 @@ export function SkillTreeView() {
               progress = `${t.nodes.filter(n => n.status === 'completed').length}/${t.nodes.filter(n => n.status !== 'skipped').length}`
             } else {
               const t = item as typeof state.flowTrees[0]
-              const main = t.nodes.filter(n => n.parentId === null)
-              const done = main.filter(n => n.status === 'done').length
-              progress = `${done}/${main.length} 단계`
+              const done = t.nodes.filter(n => n.status === 'done').length
+              progress = `${done}/${t.nodes.length} 노드`
             }
             return (
               <div key={item.id} className={`skilltree-sidebar__item ${isActive ? 'skilltree-sidebar__item--active' : ''}`}
                 onClick={() => { if (tab === 'analysis') dispatch({ type: 'SET_ACTIVE_TREE', treeId: item.id }); else dispatch({ type: 'SET_ACTIVE_FLOW_TREE', treeId: item.id }) }}>
-                <span className="skilltree-sidebar__item-icon">{tab === 'analysis' ? '🔬' : '🔗'}</span>
+                <span className="skilltree-sidebar__item-icon">{tab === 'analysis' ? '🔬' : '⬡'}</span>
                 <div className="skilltree-sidebar__item-info">
                   <span className="skilltree-sidebar__item-name">{item.name}</span>
                   <span className="skilltree-sidebar__item-progress">{progress}</span>
@@ -449,7 +492,7 @@ export function SkillTreeView() {
           })}
         </div>
         {sidebarItems.length === 0 && !showCreate && (
-          <div className="skilltree-sidebar__empty">{tab === 'analysis' ? '목표를 입력하면\nAI가 단계별 대안을 제시합니다.' : '작업 단계를 노드로 만들어\n플로우를 구성하세요.'}</div>
+          <div className="skilltree-sidebar__empty">{tab === 'analysis' ? '목표를 입력하면\nAI가 단계별 대안을 제시합니다.' : '노드를 만들고 연결하여\n자동화 워크플로우를 구성하세요.'}</div>
         )}
       </div>
 
@@ -480,18 +523,12 @@ export function SkillTreeView() {
               ) : <AnalysisTreeCanvas treeId={activeTree.id} onExportToGraph={handleExportToGraph} />}
             </>
           ) : (
-            /* Placeholder with + button for quick creation */
             <div className="skilltree-placeholder">
               {quickCreate ? (
                 <div className="skilltree-placeholder__create">
-                  <input
-                    autoFocus
-                    className="skilltree-placeholder__input"
-                    placeholder={tab === 'analysis' ? '프로젝트 이름 입력...' : '플로우 이름 입력...'}
-                    value={quickName}
-                    onChange={e => setQuickName(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') handleQuickCreate(); if (e.key === 'Escape') { setQuickCreate(false); setQuickName('') } }}
-                  />
+                  <input autoFocus className="skilltree-placeholder__input" placeholder="프로젝트 이름 입력..."
+                    value={quickName} onChange={e => setQuickName(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleQuickCreate(); if (e.key === 'Escape') { setQuickCreate(false); setQuickName('') } }} />
                   <button className="skilltree-placeholder__create-btn" onClick={handleQuickCreate}>생성</button>
                 </div>
               ) : (
@@ -515,24 +552,18 @@ export function SkillTreeView() {
               <div className="skilltree-main__header">
                 <h2>{activeFlowTree.name}</h2>
                 <span className="skilltree-main__meta">
-                  {activeFlowTree.nodes.filter(n => n.parentId === null && n.status === 'done').length}/{activeFlowTree.nodes.filter(n => n.parentId === null).length} 완료
+                  {activeFlowTree.nodes.filter(n => n.status === 'done').length}/{activeFlowTree.nodes.length} 노드
                 </span>
               </div>
-              <FlowSkillTreeView treeId={activeFlowTree.id} />
+              <SkillNodeGraph treeId={activeFlowTree.id} />
             </>
           ) : (
-            /* Placeholder with + button for quick creation */
             <div className="skilltree-placeholder">
               {quickCreate ? (
                 <div className="skilltree-placeholder__create">
-                  <input
-                    autoFocus
-                    className="skilltree-placeholder__input"
-                    placeholder="플로우 이름 입력..."
-                    value={quickName}
-                    onChange={e => setQuickName(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') handleQuickCreate(); if (e.key === 'Escape') { setQuickCreate(false); setQuickName('') } }}
-                  />
+                  <input autoFocus className="skilltree-placeholder__input" placeholder="스킬트리 이름 입력..."
+                    value={quickName} onChange={e => setQuickName(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleQuickCreate(); if (e.key === 'Escape') { setQuickCreate(false); setQuickName('') } }} />
                   <button className="skilltree-placeholder__create-btn" onClick={handleQuickCreate}>생성</button>
                 </div>
               ) : (
@@ -544,10 +575,10 @@ export function SkillTreeView() {
                   </svg>
                 </button>
               )}
-              <div className="skilltree-placeholder__icon">🎮</div>
+              <div className="skilltree-placeholder__icon">⬡</div>
               <h3>스킬트리</h3>
-              <p>스킬을 하나씩 찍어가며 레벨업하세요.</p>
-              <p>각 스킬에 하위 스킬을 연결할 수 있습니다.</p>
+              <p>노드를 만들고 연결하여</p>
+              <p>자동화 워크플로우를 구성하세요.</p>
             </div>
           )
         )}

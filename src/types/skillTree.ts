@@ -32,12 +32,21 @@ export interface FlowNode {
   order: number          // position in main chain (0, 1, 2, ...)
   parentId: string | null // null = main chain, string = branch of that node
   tags: string[]
+  x?: number             // visual position (for node graph mode)
+  y?: number
+}
+
+export interface FlowEdge {
+  id: string
+  source: string
+  target: string
 }
 
 export interface FlowTree {
   id: string
   name: string
   nodes: FlowNode[]
+  edges: FlowEdge[]
   createdAt: number
 }
 
@@ -74,4 +83,7 @@ export type SkillTreeAction =
   | { type: 'ADD_FLOW_BRANCH'; treeId: string; parentId: string; label: string }
   | { type: 'UPDATE_FLOW_NODE'; treeId: string; nodeId: string; updates: Partial<Pick<FlowNode, 'label' | 'description' | 'status' | 'tags'>> }
   | { type: 'REMOVE_FLOW_NODE'; treeId: string; nodeId: string }
+  | { type: 'MOVE_FLOW_NODE'; treeId: string; nodeId: string; x: number; y: number }
+  | { type: 'ADD_FLOW_EDGE'; treeId: string; edge: FlowEdge }
+  | { type: 'REMOVE_FLOW_EDGE'; treeId: string; edgeId: string }
   | { type: 'LOAD_FLOW_TREES'; trees: FlowTree[] }
