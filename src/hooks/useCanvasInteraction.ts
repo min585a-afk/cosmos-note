@@ -123,6 +123,7 @@ export function useCanvasInteraction(
 
     if (interaction.type === 'dragging-node') {
       dispatch({ type: 'UNPIN_NODE', nodeId: interaction.nodeId })
+      dispatch({ type: 'SET_SELECTED', nodeId: interaction.nodeId })
       reheat(0.5)
     } else if (interaction.type === 'creating-edge') {
       const pos = getCanvasPos(e)

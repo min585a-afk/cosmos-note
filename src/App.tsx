@@ -15,9 +15,67 @@ import { HoverPreview } from './components/HoverPreview'
 import { NoteView } from './components/NoteView'
 import { SkillTreeView } from './components/SkillTreeView'
 import { CalendarView } from './components/CalendarView'
+import { QuestPage } from './components/QuestPage'
 import './App.css'
 
-export type ViewMode = 'graph' | 'notes' | 'skilltree' | 'calendar'
+export type ViewMode = 'graph' | 'notes' | 'skilltree' | 'calendar' | 'quests'
+
+// ===== Login / Loading Screen =====
+function LoginScreen({ onLogin }: { onLogin: () => void }) {
+  const [phase, setPhase] = useState<'loading' | 'login'>('loading')
+  const [name, setName] = useState(() => localStorage.getItem('cosmos-user') || '')
+
+  useEffect(() => {
+    const timer = setTimeout(() => setPhase('login'), 2200)
+    return () => clearTimeout(timer)
+  }, [])
+
+  const handleLogin = () => {
+    const userName = name.trim() || 'Explorer'
+    localStorage.setItem('cosmos-user', userName)
+    onLogin()
+  }
+
+  return (
+    <div className="login-screen">
+      <CosmosBg />
+      <div className="login-screen__content">
+        {phase === 'loading' ? (
+          <div className="login-loading">
+            <div className="login-loading__star">
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                <circle cx="24" cy="24" r="4" fill="white" className="login-loading__core" />
+                <circle cx="24" cy="24" r="12" fill="none" stroke="rgba(167,139,250,0.3)" strokeWidth="1" className="login-loading__ring1" />
+                <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(167,139,250,0.15)" strokeWidth="1" className="login-loading__ring2" />
+              </svg>
+            </div>
+            <p className="login-loading__text">Cosmos Note</p>
+          </div>
+        ) : (
+          <div className="login-form">
+            <div className="login-form__logo">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="2" />
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+              </svg>
+            </div>
+            <h1 className="login-form__title">Cosmos Note</h1>
+            <p className="login-form__subtitle">우주처럼 무한한 당신의 생각을 연결하세요</p>
+            <input
+              className="login-form__input"
+              placeholder="이름을 입력하세요..."
+              value={name}
+              onChange={e => setName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleLogin()}
+              autoFocus
+            />
+            <button className="login-form__btn" onClick={handleLogin}>시작하기</button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
 function AppContent() {
   const { theme } = useTheme()
@@ -85,6 +143,8 @@ function AppContent() {
           <NoteView onSwitchToGraph={handleSwitchToGraph} />
         ) : view === 'calendar' ? (
           <CalendarView />
+        ) : view === 'quests' ? (
+          <QuestPage />
         ) : (
           <SkillTreeView />
         )}
@@ -95,6 +155,16 @@ function AppContent() {
 }
 
 function App() {
+  const [loggedIn, setLoggedIn] = useState(() => !!localStorage.getItem('cosmos-user'))
+
+  if (!loggedIn) {
+    return (
+      <ThemeProvider>
+        <LoginScreen onLogin={() => setLoggedIn(true)} />
+      </ThemeProvider>
+    )
+  }
+
   return (
     <ThemeProvider>
       <GraphProvider>

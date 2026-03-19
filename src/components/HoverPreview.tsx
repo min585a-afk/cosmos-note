@@ -25,7 +25,7 @@ export function HoverPreview({
 
     timerRef.current = window.setTimeout(() => {
       setVisibleNodeId(hoveredNodeId)
-    }, 2000)
+    }, 1200)
 
     return () => clearTimeout(timerRef.current)
   }, [hoveredNodeId, selectedNodeId])

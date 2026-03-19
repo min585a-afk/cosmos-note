@@ -240,7 +240,7 @@ function FlowSkillTreeView({ treeId }: { treeId: string }) {
                       {isDone && <polygon points={hexPath(32, 32, 24)} className="flow-hex__inner" />}
                     </svg>
                     <span className="flow-hex__icon">{isDone ? '✦' : prevAllDone && !isDone ? '◇' : '🔒'}</span>
-                    <span className="flow-hex__num">{i + 1}/{mainChain.length}</span>
+                    <span className="flow-hex__num">{i + 1}</span>
                   </div>
                   <div className="flow-node__label">{node.label}</div>
                 </div>

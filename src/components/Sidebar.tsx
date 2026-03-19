@@ -227,8 +227,8 @@ export function Sidebar({ view, onViewChange }: { view: ViewMode; onViewChange: 
                 <span className="nav-item__count">{calendarEvents.filter(e => !e.done).length}</span>
               </button>
               <button
-                className={`nav-item ${questOpen ? 'nav-item--active' : ''}`}
-                onClick={() => setQuestOpen(!questOpen)}
+                className={`nav-item ${view === 'quests' ? 'nav-item--active' : ''}`}
+                onClick={() => { onViewChange('quests'); setQuestOpen(!questOpen) }}
               >
                 <span className="nav-item__icon">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -62,6 +62,11 @@ export function NoteView({ onSwitchToGraph }: { onSwitchToGraph: (nodeId: string
   const [isEditing, setIsEditing] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const bodyRef = useRef<HTMLTextAreaElement>(null)
+  const [dragId, setDragId] = useState<string | null>(null)
+  const [dragOverId, setDragOverId] = useState<string | null>(null)
+  const [noteOrder, setNoteOrder] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('cosmos-note-order') || '[]') } catch { return [] }
+  })
 
   const activeNote = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null
 
@@ -84,10 +89,22 @@ export function NoteView({ onSwitchToGraph }: { onSwitchToGraph: (nodeId: string
         n.tags.some(t => t.toLowerCase().includes(q))
       )
     }
-    return [...list].sort((a, b) =>
+    const sorted = [...list].sort((a, b) =>
       sortBy === 'recent' ? b.createdAt - a.createdAt : a.label.localeCompare(b.label)
     )
-  }, [nodes, filter, sortBy, searchQuery])
+    // Apply custom order if exists
+    if (noteOrder.length > 0 && sortBy === 'recent') {
+      sorted.sort((a, b) => {
+        const ai = noteOrder.indexOf(a.id)
+        const bi = noteOrder.indexOf(b.id)
+        if (ai === -1 && bi === -1) return b.createdAt - a.createdAt
+        if (ai === -1) return 1
+        if (bi === -1) return -1
+        return ai - bi
+      })
+    }
+    return sorted
+  }, [nodes, filter, sortBy, searchQuery, noteOrder])
 
   // Connected notes
   const connectedNotes = useMemo(() => {
@@ -351,8 +368,28 @@ export function NoteView({ onSwitchToGraph }: { onSwitchToGraph: (nodeId: string
             return (
               <button
                 key={n.id}
-                className={`note-item ${n.id === selectedNodeId ? 'note-item--active' : ''}`}
+                className={`note-item ${n.id === selectedNodeId ? 'note-item--active' : ''} ${dragOverId === n.id ? 'note-item--dragover' : ''}`}
                 onClick={() => { dispatch({ type: 'SET_SELECTED', nodeId: n.id }); setIsEditing(false) }}
+                draggable
+                onDragStart={() => setDragId(n.id)}
+                onDragOver={(e) => { e.preventDefault(); setDragOverId(n.id) }}
+                onDragLeave={() => setDragOverId(null)}
+                onDrop={() => {
+                  if (dragId && dragId !== n.id) {
+                    const currentIds = filtered.map(x => x.id)
+                    const fromIdx = currentIds.indexOf(dragId)
+                    const toIdx = currentIds.indexOf(n.id)
+                    if (fromIdx !== -1 && toIdx !== -1) {
+                      const newOrder = [...currentIds]
+                      newOrder.splice(fromIdx, 1)
+                      newOrder.splice(toIdx, 0, dragId)
+                      setNoteOrder(newOrder)
+                      localStorage.setItem('cosmos-note-order', JSON.stringify(newOrder))
+                    }
+                  }
+                  setDragId(null); setDragOverId(null)
+                }}
+                onDragEnd={() => { setDragId(null); setDragOverId(null) }}
               >
                 <div
                   className={`note-item__dot ${!hasContent ? 'note-item__dot--empty' : ''}`}
@@ -462,7 +499,7 @@ export function NoteView({ onSwitchToGraph }: { onSwitchToGraph: (nodeId: string
                   year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
                 })}
               </span>
-              <span className="note-editor__word-count">{wordCount}단어</span>
+              {/* word count removed */}
               {!activeNote.description.trim() && (
                 <span className="note-editor__empty-badge">빈 노트 — 내용을 적으면 색상이 활성화됩니다</span>
               )}
