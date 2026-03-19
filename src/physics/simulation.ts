@@ -1,12 +1,12 @@
 import type { GraphNode, GraphEdge } from '../types/graph'
 
-const SPRING_STRENGTH = 0.04
-const SPRING_LENGTH = 180
-const REPULSION_STRENGTH = 1000
+const SPRING_STRENGTH = 0.06
+const SPRING_LENGTH = 90
+const REPULSION_STRENGTH = 500
 const CENTER_STRENGTH = 0.0003  // Very weak — just prevents drift off-screen
-const GROUP_STRENGTH = 0.008    // Pull connected nodes toward their group centroid
+const GROUP_STRENGTH = 0.015    // Pull connected nodes toward their group centroid
 const DAMPING = 0.82
-const MIN_DIST = 30
+const MIN_DIST = 20
 
 /**
  * Find connected components — each component forms a cluster
@@ -98,7 +98,7 @@ export function tick(nodes: GraphNode[], edges: GraphEdge[], alpha: number): voi
     const isPlanetStar =
       (source.radius >= 14 && target.radius < 14) ||
       (target.radius >= 14 && source.radius < 14)
-    const springLen = isPlanetStar ? 100 : SPRING_LENGTH
+    const springLen = isPlanetStar ? 60 : SPRING_LENGTH
 
     let dx = target.x - source.x
     let dy = target.y - source.y
