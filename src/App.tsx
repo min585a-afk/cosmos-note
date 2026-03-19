@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
-import { GraphProvider, useGraphDispatch } from './state/GraphContext'
+import { GraphProvider, useGraphDispatch, useGraphState } from './state/GraphContext'
 import { SkillTreeProvider } from './state/SkillTreeContext'
 import { ThemeProvider, useTheme } from './state/ThemeContext'
 import { CosmosBg } from './components/CosmosBg'
@@ -12,6 +12,8 @@ import { BranchInput } from './components/BranchInput'
 import { NodeCreator } from './components/NodeCreator'
 import { FloatingSearch } from './components/FloatingSearch'
 import { HoverPreview } from './components/HoverPreview'
+import { GraphSettingsPanel, defaultSettings } from './components/GraphSettingsPanel'
+import type { GraphSettings } from './components/GraphSettingsPanel'
 import { NoteView } from './components/NoteView'
 import { SkillTreeView } from './components/SkillTreeView'
 import { CalendarView } from './components/CalendarView'
@@ -110,8 +112,17 @@ function AppContent() {
   const [size, setSize] = useState({ w: 0, h: 0 })
   const [view, setView] = useState<ViewMode>('graph')
   const [screensaver, setScreensaver] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [graphSettings, setGraphSettings] = useState<GraphSettings>(defaultSettings)
   const reheatRef = useRef<(() => void) | null>(null)
   const dispatch = useGraphDispatch()
+  const graphState = useGraphState()
+
+  // Compute stats for settings panel
+  const connectedNodeIds = new Set<string>()
+  for (const e of graphState.edges) { connectedNodeIds.add(e.source); connectedNodeIds.add(e.target) }
+  const orphanCount = graphState.nodes.filter(n => !connectedNodeIds.has(n.id)).length
+  const allTags = [...new Set(graphState.nodes.flatMap(n => n.tags))]
 
   useEffect(() => {
     const el = mainRef.current
@@ -123,6 +134,14 @@ function AppContent() {
     obs.observe(el)
     return () => obs.disconnect()
   }, [])
+
+  // Animate mode: keep reheating
+  useEffect(() => {
+    if (!graphSettings.animate) return
+    const id = setInterval(() => reheatRef.current?.(), 500)
+    reheatRef.current?.()
+    return () => clearInterval(id)
+  }, [graphSettings.animate])
 
   const handleReheat = useCallback(() => {
     reheatRef.current?.()
@@ -158,15 +177,26 @@ function AppContent() {
       {theme === 'cosmos' && <CosmosBg />}
       <Sidebar view={view} onViewChange={setView} onScreensaver={() => setScreensaver(true)} />
       <main className="main" ref={mainRef}>
-        <Header onReheat={handleReheat} />
+        <Header onReheat={handleReheat} onToggleSettings={() => setShowSettings(p => !p)} />
         {view === 'graph' ? (
           <div className="canvas-wrapper">
-            <GraphCanvas reheatRef={reheatRef} onOpenNote={handleOpenNote} />
+            <GraphCanvas reheatRef={reheatRef} onOpenNote={handleOpenNote} settings={graphSettings} />
             <NodeTooltip containerWidth={size.w} containerHeight={size.h} onReheat={handleReheat} />
             <HoverPreview containerWidth={size.w} containerHeight={size.h} />
             <BranchInput containerWidth={size.w} containerHeight={size.h} onReheat={handleReheat} />
             <NodeCreator onReheat={handleReheat} />
             <FloatingSearch />
+            {showSettings && (
+              <GraphSettingsPanel
+                settings={graphSettings}
+                onChange={setGraphSettings}
+                allTags={allTags}
+                nodeCount={graphState.nodes.length}
+                edgeCount={graphState.edges.length}
+                orphanCount={orphanCount}
+                onClose={() => setShowSettings(false)}
+              />
+            )}
           </div>
         ) : view === 'notes' ? (
           <NoteView onSwitchToGraph={handleSwitchToGraph} />

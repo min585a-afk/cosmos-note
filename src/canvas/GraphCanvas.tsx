@@ -3,8 +3,9 @@ import { useGraphState } from '../state/GraphContext'
 import { useSimulation } from '../hooks/useSimulation'
 import { useCanvasInteraction } from '../hooks/useCanvasInteraction'
 import { drawGrid, drawEdge, drawNode, drawLabel, drawDraftEdge } from './renderer'
+import type { GraphSettings } from '../components/GraphSettingsPanel'
 
-export function GraphCanvas({ reheatRef, onOpenNote }: { reheatRef?: MutableRefObject<(() => void) | null>; onOpenNote?: (nodeId: string) => void }) {
+export function GraphCanvas({ reheatRef, onOpenNote, settings }: { reheatRef?: MutableRefObject<(() => void) | null>; onOpenNote?: (nodeId: string) => void; settings?: GraphSettings }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const sizeRef = useRef({ w: 0, h: 0 })
@@ -21,7 +22,9 @@ export function GraphCanvas({ reheatRef, onOpenNote }: { reheatRef?: MutableRefO
   const selectedRef = useRef(state.selectedNodeId)
   const interactionRef = useRef(state.interaction)
   const searchRef = useRef(state.searchQuery)
+  const settingsRef = useRef(settings)
 
+  useEffect(() => { settingsRef.current = settings }, [settings])
   useEffect(() => { viewportRef.current = state.viewport }, [state.viewport])
   useEffect(() => { edgesRef.current = state.edges }, [state.edges])
   useEffect(() => { hoveredRef.current = state.hoveredNodeId }, [state.hoveredNodeId])
@@ -89,13 +92,30 @@ export function GraphCanvas({ reheatRef, onOpenNote }: { reheatRef?: MutableRefO
     // Get live node positions from simulation ref
     const liveNodes = nodesRef.current
     const nodeMap = new Map(liveNodes.map((n) => [n.id, n]))
+    const gs = settingsRef.current
+
+    // Filter nodes based on settings
+    const connectedIds = new Set<string>()
+    for (const e of edges) { connectedIds.add(e.source); connectedIds.add(e.target) }
+
+    const visibleNodes = liveNodes.filter(n => {
+      if (gs) {
+        if (!gs.showTypes[n.type]) return false
+        if (!gs.showOrphans && !connectedIds.has(n.id)) return false
+        if (gs.filterTags.length > 0 && !n.tags.some(t => gs.filterTags.includes(t))) return false
+      }
+      return true
+    })
+    const visibleIds = new Set(visibleNodes.map(n => n.id))
 
     // Edges
+    const thickness = gs?.linkThickness ?? 1.0
+    const showArrow = gs?.showArrows ?? false
     for (const edge of edges) {
       const src = nodeMap.get(edge.source)
       const tgt = nodeMap.get(edge.target)
-      if (src && tgt) {
-        drawEdge(ctx, src, tgt, false, time)
+      if (src && tgt && visibleIds.has(edge.source) && visibleIds.has(edge.target)) {
+        drawEdge(ctx, src, tgt, false, time, thickness, showArrow)
       }
     }
 
@@ -110,17 +130,22 @@ export function GraphCanvas({ reheatRef, onOpenNote }: { reheatRef?: MutableRefO
     // Search matching
     const query = searchRef.current.toLowerCase()
     const searchMatchIds = query
-      ? new Set(liveNodes.filter(n => n.label.toLowerCase().includes(query)).map(n => n.id))
+      ? new Set(visibleNodes.filter(n => n.label.toLowerCase().includes(query)).map(n => n.id))
       : new Set<string>()
 
+    const sizeMul = gs?.nodeSizeMul ?? 1.0
+    const labelThreshold = gs?.labelThreshold ?? 0.3
+
     // Nodes
-    for (const node of liveNodes) {
-      drawNode(ctx, node, node.id === hoveredNodeId, node.id === selectedNodeId, time, searchMatchIds.has(node.id))
+    for (const node of visibleNodes) {
+      drawNode(ctx, node, node.id === hoveredNodeId, node.id === selectedNodeId, time, searchMatchIds.has(node.id), sizeMul)
     }
 
-    // Labels
-    for (const node of liveNodes) {
-      drawLabel(ctx, node, node.id === hoveredNodeId, node.id === selectedNodeId, time, searchMatchIds.has(node.id))
+    // Labels (hide when zoomed out below threshold)
+    if (viewport.scale >= labelThreshold) {
+      for (const node of visibleNodes) {
+        drawLabel(ctx, node, node.id === hoveredNodeId, node.id === selectedNodeId, time, searchMatchIds.has(node.id))
+      }
     }
 
     animRef.current = requestAnimationFrame(render)

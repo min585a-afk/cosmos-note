@@ -40,7 +40,9 @@ export function drawEdge(
   source: GraphNode,
   target: GraphNode,
   _isActive: boolean = false,
-  _time: number = 0
+  _time: number = 0,
+  thickness: number = 1.0,
+  showArrow: boolean = false
 ) {
   ctx.beginPath()
   ctx.moveTo(source.x, source.y)
@@ -52,8 +54,28 @@ export function drawEdge(
   } else {
     ctx.strokeStyle = isPlanetEdge ? 'rgba(255, 255, 255, 0.18)' : 'rgba(255, 255, 255, 0.10)'
   }
-  ctx.lineWidth = isPlanetEdge ? 1 : 0.6
+  ctx.lineWidth = (isPlanetEdge ? 1 : 0.6) * thickness
   ctx.stroke()
+
+  // Arrow
+  if (showArrow) {
+    const dx = target.x - source.x
+    const dy = target.y - source.y
+    const len = Math.sqrt(dx * dx + dy * dy)
+    if (len < 1) return
+    const ux = dx / len
+    const uy = dy / len
+    const arrowLen = 6 * thickness
+    const tipX = target.x - ux * (target.radius >= 14 ? 10 : 5)
+    const tipY = target.y - uy * (target.radius >= 14 ? 10 : 5)
+    ctx.beginPath()
+    ctx.moveTo(tipX, tipY)
+    ctx.lineTo(tipX - ux * arrowLen + uy * arrowLen * 0.4, tipY - uy * arrowLen - ux * arrowLen * 0.4)
+    ctx.lineTo(tipX - ux * arrowLen - uy * arrowLen * 0.4, tipY - uy * arrowLen + ux * arrowLen * 0.4)
+    ctx.closePath()
+    ctx.fillStyle = ctx.strokeStyle
+    ctx.fill()
+  }
 }
 
 export function drawDraftEdge(
@@ -93,10 +115,11 @@ function drawPlanet(
   isHovered: boolean,
   isSelected: boolean,
   _time: number,
-  isSearchMatch: boolean
+  isSearchMatch: boolean,
+  sizeMul: number = 1.0
 ) {
   const { x, y, color } = node
-  const baseR = isHovered ? 9 : isSelected ? 8.5 : isSearchMatch ? 8.5 : 7.5
+  const baseR = (isHovered ? 9 : isSelected ? 8.5 : isSearchMatch ? 8.5 : 7.5) * sizeMul
   const [cr, cg, cb] = hexToRgb(color)
 
   // Soft glow
@@ -161,12 +184,13 @@ function drawStar(
   isHovered: boolean,
   isSelected: boolean,
   time: number,
-  isSearchMatch: boolean
+  isSearchMatch: boolean,
+  sizeMul: number = 1.0
 ) {
   const { x, y, color } = node
   const [cr, cg, cb] = hexToRgb(color)
 
-  const baseR = node.radius >= 10 ? 3 : 2.5
+  const baseR = (node.radius >= 10 ? 3 : 2.5) * sizeMul
   const r = isHovered ? baseR + 1.5 : isSelected ? baseR + 1 : isSearchMatch ? baseR + 1 : baseR
 
   // Twinkle
@@ -224,11 +248,12 @@ function drawDotNode(
   node: GraphNode,
   isHovered: boolean,
   isSelected: boolean,
-  isSearchMatch: boolean
+  isSearchMatch: boolean,
+  sizeMul: number = 1.0
 ) {
   const { x, y, color } = node
   const isPlanet = node.radius >= 14
-  const baseR = isPlanet ? (isHovered ? 6 : isSelected ? 5.5 : 5) : (isHovered ? 4 : isSelected ? 3.5 : 3)
+  const baseR = (isPlanet ? (isHovered ? 6 : isSelected ? 5.5 : 5) : (isHovered ? 4 : isSelected ? 3.5 : 3)) * sizeMul
 
   // Hover/select ring
   if (isSelected || isSearchMatch) {
@@ -265,12 +290,13 @@ function drawBasicNode(
   node: GraphNode,
   isHovered: boolean,
   isSelected: boolean,
-  isSearchMatch: boolean
+  isSearchMatch: boolean,
+  sizeMul: number = 1.0
 ) {
   const { x, y, color } = node
   const [cr, cg, cb] = hexToRgb(color)
   const isPlanet = node.radius >= 14
-  const baseR = isPlanet ? (isHovered ? 8 : isSelected ? 7.5 : 7) : (isHovered ? 5 : isSelected ? 4.5 : 4)
+  const baseR = (isPlanet ? (isHovered ? 8 : isSelected ? 7.5 : 7) : (isHovered ? 5 : isSelected ? 4.5 : 4)) * sizeMul
 
   // Selected/search ring
   if (isSelected || isSearchMatch) {
@@ -316,20 +342,21 @@ export function drawNode(
   isHovered: boolean,
   isSelected: boolean,
   time: number,
-  isSearchMatch: boolean = false
+  isSearchMatch: boolean = false,
+  sizeMul: number = 1.0
 ) {
   const theme = getTheme()
 
   if (theme === 'dot') {
-    drawDotNode(ctx, node, isHovered, isSelected, isSearchMatch)
+    drawDotNode(ctx, node, isHovered, isSelected, isSearchMatch, sizeMul)
   } else if (theme === 'light') {
-    drawBasicNode(ctx, node, isHovered, isSelected, isSearchMatch)
+    drawBasicNode(ctx, node, isHovered, isSelected, isSearchMatch, sizeMul)
   } else {
     // Cosmos theme - original
     if (node.radius >= 14) {
-      drawPlanet(ctx, node, isHovered, isSelected, time, isSearchMatch)
+      drawPlanet(ctx, node, isHovered, isSelected, time, isSearchMatch, sizeMul)
     } else {
-      drawStar(ctx, node, isHovered, isSelected, time, isSearchMatch)
+      drawStar(ctx, node, isHovered, isSelected, time, isSearchMatch, sizeMul)
     }
   }
 }
