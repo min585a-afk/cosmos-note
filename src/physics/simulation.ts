@@ -2,14 +2,14 @@ import type { GraphNode, GraphEdge } from '../types/graph'
 
 const SPRING_STRENGTH = 0.08
 const SPRING_LENGTH = 70
-const REPULSION_SAME_GROUP = 400    // Within same group — mild, keeps nodes readable
-const REPULSION_DIFF_GROUP = 300    // Between different groups — push away from other clusters
-const EDGE_REPULSION = 600          // Edges push away non-connected nodes
-const EDGE_REPULSION_DIST = 60      // Max distance for edge repulsion
-const GLOBAL_CENTER = 0.006         // Pull ALL nodes toward (0,0) — the "gravity"
-const GROUP_COHESION = 0.02         // Extra pull within same group toward group center
+const REPULSION_SAME_GROUP = 500    // Within same group — keeps nodes readable
+const REPULSION_DIFF_GROUP = 2000   // Between different groups — strong push to prevent overlap
+const EDGE_REPULSION = 800          // Edges push away non-connected nodes
+const EDGE_REPULSION_DIST = 80      // Max distance for edge repulsion
+const GLOBAL_CENTER = 0.003         // Pull ALL nodes toward (0,0) — weaker to allow separation
+const GROUP_COHESION = 0.025        // Pull within same group toward group center
 const DAMPING = 0.8
-const MIN_DIST = 15
+const MIN_DIST = 25
 
 /**
  * Union-Find for connected components
