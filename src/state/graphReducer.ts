@@ -1,5 +1,6 @@
 import type { GraphState, GraphAction, GraphNode, GraphEdge } from '../types/graph'
-import { NODE_COLORS as COLORS, EMPTY_NODE_COLOR } from '../types/graph'
+import { NODE_COLORS as COLORS, EMPTY_NODE_COLOR, SIZE_TO_RADIUS } from '../types/graph'
+import type { NodeSize } from '../types/graph'
 import { findAutoLinks } from '../utils/autoLink'
 
 let _idCounter = 0
@@ -11,6 +12,7 @@ export function createNode(
   partial: Pick<GraphNode, 'label' | 'type'> & Partial<GraphNode>
 ): GraphNode {
   const desc = partial.description || ''
+  const size: NodeSize = partial.size ?? 3
   return {
     id: generateId(),
     description: '',
@@ -21,9 +23,13 @@ export function createNode(
     vy: 0,
     fx: null,
     fy: null,
-    radius: 14,
+    radius: SIZE_TO_RADIUS[size],
     color: desc.trim() ? COLORS[partial.type] : EMPTY_NODE_COLOR,
     createdAt: Date.now(),
+    size,
+    icon: undefined,
+    customColor: undefined,
+    statuses: [],
     ...partial,
     // Override color based on description content
     ...(partial.color ? {} : { color: desc.trim() ? COLORS[partial.type] : EMPTY_NODE_COLOR }),
@@ -163,10 +169,18 @@ export function graphReducer(state: GraphState, action: GraphAction): GraphState
       const updatedNodes = state.nodes.map((n) => {
         if (n.id !== action.nodeId) return n
         const updated = { ...n, ...action.updates }
-        // Determine color: if description exists → neon, else → gray
+        // Sync size → radius
+        if (action.updates.size !== undefined) {
+          updated.radius = SIZE_TO_RADIUS[action.updates.size]
+        }
+        // Determine color: customColor takes priority, else type-based
         const desc = (action.updates.description !== undefined ? action.updates.description : n.description).trim()
         const nodeType = action.updates.type || n.type
-        updated.color = desc ? COLORS[nodeType] : EMPTY_NODE_COLOR
+        if (!updated.customColor) {
+          updated.color = desc ? COLORS[nodeType] : EMPTY_NODE_COLOR
+        } else {
+          updated.color = updated.customColor
+        }
         return updated
       })
 

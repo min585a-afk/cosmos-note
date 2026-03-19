@@ -1,4 +1,5 @@
 import type { GraphNode } from '../types/graph'
+import { STATUS_EMOJI } from '../types/graph'
 
 const TWO_PI = Math.PI * 2
 
@@ -119,7 +120,8 @@ function drawPlanet(
   sizeMul: number = 1.0
 ) {
   const { x, y, color } = node
-  const baseR = (isHovered ? 9 : isSelected ? 8.5 : isSearchMatch ? 8.5 : 7.5) * sizeMul
+  const rScale = node.radius / 14  // scale relative to default planet radius
+  const baseR = (isHovered ? 9 : isSelected ? 8.5 : isSearchMatch ? 8.5 : 7.5) * sizeMul * rScale
   const [cr, cg, cb] = hexToRgb(color)
 
   // Soft glow
@@ -190,7 +192,8 @@ function drawStar(
   const { x, y, color } = node
   const [cr, cg, cb] = hexToRgb(color)
 
-  const baseR = (node.radius >= 10 ? 3 : 2.5) * sizeMul
+  const rScale = node.radius / 10  // scale relative to default star radius
+  const baseR = (node.radius >= 10 ? 3 : 2.5) * sizeMul * rScale
   const r = isHovered ? baseR + 1.5 : isSelected ? baseR + 1 : isSearchMatch ? baseR + 1 : baseR
 
   // Twinkle
@@ -336,6 +339,19 @@ function drawBasicNode(
   }
 }
 
+function drawNodeIcon(
+  ctx: CanvasRenderingContext2D,
+  node: GraphNode,
+  baseR: number
+) {
+  if (!node.icon) return
+  const fontSize = Math.max(8, baseR * 1.3)
+  ctx.font = `${fontSize}px 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(node.icon, node.x, node.y + 1)
+}
+
 export function drawNode(
   ctx: CanvasRenderingContext2D,
   node: GraphNode,
@@ -358,6 +374,12 @@ export function drawNode(
     } else {
       drawStar(ctx, node, isHovered, isSelected, time, isSearchMatch, sizeMul)
     }
+  }
+
+  // Draw icon on top of node (all themes)
+  if (node.icon) {
+    const r = node.radius * sizeMul * 0.55
+    drawNodeIcon(ctx, node, r)
   }
 }
 
@@ -396,5 +418,44 @@ export function drawLabel(
     ctx.globalAlpha = showLabel ? 1 : 0.5
     ctx.fillText(node.label, node.x + 7, node.y)
     ctx.globalAlpha = 1
+  }
+}
+
+export function drawStatusIndicators(
+  ctx: CanvasRenderingContext2D,
+  node: GraphNode,
+  time: number,
+  sizeMul: number = 1.0
+) {
+  const statuses = node.statuses
+  if (!statuses || statuses.length === 0) return
+
+  const baseR = node.radius * sizeMul
+  const orbitR = baseR + 12
+  const orbitSpeed = 0.0005
+  const baseAngle = time * orbitSpeed
+
+  for (let i = 0; i < statuses.length; i++) {
+    const angle = baseAngle + (i * TWO_PI) / statuses.length
+    const sx = node.x + Math.cos(angle) * orbitR
+    const sy = node.y + Math.sin(angle) * orbitR
+
+    const emoji = STATUS_EMOJI[statuses[i]]
+    const indicatorR = 7
+
+    // Dark circle background
+    ctx.beginPath()
+    ctx.arc(sx, sy, indicatorR, 0, TWO_PI)
+    ctx.fillStyle = 'rgba(10, 10, 30, 0.7)'
+    ctx.fill()
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'
+    ctx.lineWidth = 0.5
+    ctx.stroke()
+
+    // Emoji
+    ctx.font = '10px "Apple Color Emoji", "Segoe UI Emoji", sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(emoji, sx, sy + 1)
   }
 }

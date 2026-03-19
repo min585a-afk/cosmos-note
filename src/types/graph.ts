@@ -1,4 +1,22 @@
 export type NodeType = 'work' | 'personal' | 'task' | 'idea'
+export type NodeSize = 1 | 2 | 3 | 4 | 5
+export type NodeStatus = 'good' | 'bad' | 'question' | 'heart' | 'star'
+
+export const STATUS_EMOJI: Record<NodeStatus, string> = {
+  good: '👍',
+  bad: '👎',
+  question: '❓',
+  heart: '❤️',
+  star: '⭐',
+}
+
+export const SIZE_TO_RADIUS: Record<NodeSize, number> = {
+  1: 8,
+  2: 11,
+  3: 14,
+  4: 20,
+  5: 28,
+}
 
 export interface GraphNode {
   id: string
@@ -15,6 +33,10 @@ export interface GraphNode {
   radius: number
   color: string
   createdAt: number
+  size: NodeSize
+  icon?: string
+  customColor?: string
+  statuses: NodeStatus[]
 }
 
 export interface GraphEdge {
@@ -77,7 +99,7 @@ export type GraphAction =
   | { type: 'SET_ALPHA'; alpha: number }
   | { type: 'BATCH_ADD'; nodes: GraphNode[]; edges: GraphEdge[] }
   | { type: 'UPDATE_NODE_LABEL'; nodeId: string; label: string }
-  | { type: 'UPDATE_NODE'; nodeId: string; updates: Partial<Pick<GraphNode, 'label' | 'description' | 'tags' | 'type' | 'color'>> }
+  | { type: 'UPDATE_NODE'; nodeId: string; updates: Partial<Pick<GraphNode, 'label' | 'description' | 'tags' | 'type' | 'color' | 'size' | 'icon' | 'customColor' | 'statuses'>> }
   | { type: 'SET_SEARCH'; query: string }
   | { type: 'RESTORE_NODE'; deletedIndex: number }
   | { type: 'CLEAR_DELETED' }
@@ -96,6 +118,6 @@ export const NODE_COLORS: Record<NodeType, string> = {
 export const EMPTY_NODE_COLOR = '#4a4a5a'
 
 export function getNodeColor(node: GraphNode): string {
-  // Node with description → neon color, empty → gray
+  if (node.customColor) return node.customColor
   return node.description.trim() ? NODE_COLORS[node.type] : EMPTY_NODE_COLOR
 }

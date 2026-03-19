@@ -27,6 +27,10 @@ export function useSimulation() {
         existing.color = n.color
         existing.radius = n.radius
         existing.createdAt = n.createdAt
+        existing.size = n.size
+        existing.icon = n.icon
+        existing.customColor = n.customColor
+        existing.statuses = n.statuses
         return existing
       }
       return { ...n }

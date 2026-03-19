@@ -82,10 +82,7 @@ export function tick(nodes: GraphNode[], edges: GraphEdge[], alpha: number): voi
     const target = nodeMap.get(edge.target)
     if (!source || !target) continue
 
-    const isPlanetStar =
-      (source.radius >= 14 && target.radius < 14) ||
-      (target.radius >= 14 && source.radius < 14)
-    const springLen = isPlanetStar ? 50 : SPRING_LENGTH
+    const springLen = Math.max(source.radius + target.radius + 30, SPRING_LENGTH)
 
     let dx = target.x - source.x
     let dy = target.y - source.y
@@ -208,6 +205,52 @@ export function tick(nodes: GraphNode[], edges: GraphEdge[], alpha: number): voi
     } else {
       node.x += node.vx
       node.y += node.vy
+    }
+  }
+
+  // 8. Collision resolution — hard position-based separation
+  const COLLISION_ITERATIONS = 3
+  const COLLISION_PADDING = 8
+
+  for (let iter = 0; iter < COLLISION_ITERATIONS; iter++) {
+    for (let i = 0; i < n; i++) {
+      for (let j = i + 1; j < n; j++) {
+        const a = nodes[i], b = nodes[j]
+        const aFixed = a.fx !== null && a.fy !== null
+        const bFixed = b.fx !== null && b.fy !== null
+        if (aFixed && bFixed) continue
+
+        let dx = b.x - a.x
+        let dy = b.y - a.y
+        let distSq = dx * dx + dy * dy
+
+        const aStatusPad = (a.statuses?.length > 0) ? 10 : 0
+        const bStatusPad = (b.statuses?.length > 0) ? 10 : 0
+        const minSep = a.radius + b.radius + COLLISION_PADDING + aStatusPad + bStatusPad
+        const minSepSq = minSep * minSep
+
+        if (distSq < minSepSq) {
+          let dist = Math.sqrt(distSq)
+          if (dist < 0.1) {
+            dx = (Math.random() - 0.5) * 2
+            dy = (Math.random() - 0.5) * 2
+            dist = Math.sqrt(dx * dx + dy * dy)
+          }
+
+          const overlap = minSep - dist
+          const nx = dx / dist
+          const ny = dy / dist
+
+          let aShare = 0.5, bShare = 0.5
+          if (aFixed) { aShare = 0; bShare = 1 }
+          if (bFixed) { aShare = 1; bShare = 0 }
+
+          a.x -= nx * overlap * aShare
+          a.y -= ny * overlap * aShare
+          b.x += nx * overlap * bShare
+          b.y += ny * overlap * bShare
+        }
+      }
     }
   }
 }

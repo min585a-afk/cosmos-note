@@ -782,6 +782,96 @@
 
 .node-tooltip__tag:hover { opacity: 0.6; }
 
+/* Customization section */
+.node-tooltip__customize {
+  display: flex; flex-direction: column; gap: 6px;
+  margin-top: 6px; padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.node-tooltip__custom-row {
+  display: flex; align-items: center; gap: 8px;
+}
+
+.node-tooltip__custom-label {
+  font-size: 10px; color: var(--text-secondary); min-width: 28px; flex-shrink: 0;
+}
+
+.node-tooltip__size-options {
+  display: flex; align-items: center; gap: 4px;
+}
+
+.node-tooltip__size-btn {
+  border-radius: 50%; border: 1.5px solid var(--border);
+  background: rgba(167, 139, 250, 0.15); cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.node-tooltip__size-btn:hover {
+  border-color: var(--accent); background: rgba(167, 139, 250, 0.3);
+}
+
+.node-tooltip__size-btn--active {
+  border-color: var(--accent); background: var(--accent); box-shadow: 0 0 6px rgba(167, 139, 250, 0.5);
+}
+
+.node-tooltip__icon-grid {
+  display: flex; flex-wrap: wrap; gap: 2px;
+}
+
+.node-tooltip__icon-btn {
+  width: 24px; height: 24px; border-radius: 4px; border: 1px solid transparent;
+  background: transparent; cursor: pointer; font-size: 13px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.node-tooltip__icon-btn:hover {
+  background: rgba(167, 139, 250, 0.15); border-color: var(--border);
+}
+
+.node-tooltip__icon-btn--active {
+  background: rgba(167, 139, 250, 0.25); border-color: var(--accent);
+  box-shadow: 0 0 4px rgba(167, 139, 250, 0.4);
+}
+
+.node-tooltip__color-grid {
+  display: flex; gap: 4px;
+}
+
+.node-tooltip__color-btn {
+  width: 16px; height: 16px; border-radius: 50%; border: 2px solid transparent;
+  cursor: pointer; transition: all var(--transition-fast);
+}
+
+.node-tooltip__color-btn:hover {
+  transform: scale(1.2);
+}
+
+.node-tooltip__color-btn--active {
+  border-color: #fff; box-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
+}
+
+.node-tooltip__status-options {
+  display: flex; gap: 4px;
+}
+
+.node-tooltip__status-btn {
+  width: 28px; height: 28px; border-radius: 6px; border: 1.5px solid transparent;
+  background: transparent; cursor: pointer; font-size: 15px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.node-tooltip__status-btn:hover {
+  background: rgba(167, 139, 250, 0.15); border-color: var(--border);
+}
+
+.node-tooltip__status-btn--active {
+  background: rgba(167, 139, 250, 0.25); border-color: var(--accent);
+  box-shadow: 0 0 6px rgba(167, 139, 250, 0.4);
+}
+
 .node-tooltip__actions {
   display: flex; gap: 6px; margin-top: 4px;
 }

@@ -2,7 +2,7 @@ import { useRef, useEffect, useCallback, type MutableRefObject } from 'react'
 import { useGraphState } from '../state/GraphContext'
 import { useSimulation } from '../hooks/useSimulation'
 import { useCanvasInteraction } from '../hooks/useCanvasInteraction'
-import { drawGrid, drawEdge, drawNode, drawLabel, drawDraftEdge } from './renderer'
+import { drawGrid, drawEdge, drawNode, drawLabel, drawDraftEdge, drawStatusIndicators } from './renderer'
 import type { GraphSettings } from '../components/GraphSettingsPanel'
 
 export function GraphCanvas({ reheatRef, onOpenNote, settings }: { reheatRef?: MutableRefObject<(() => void) | null>; onOpenNote?: (nodeId: string) => void; settings?: GraphSettings }) {
@@ -143,6 +143,11 @@ export function GraphCanvas({ reheatRef, onOpenNote, settings }: { reheatRef?: M
     // Nodes
     for (const node of visibleNodes) {
       drawNode(ctx, node, node.id === hoveredNodeId, node.id === selectedNodeId, time, searchMatchIds.has(node.id), sizeMul)
+    }
+
+    // Status indicators (orbiting satellites)
+    for (const node of visibleNodes) {
+      drawStatusIndicators(ctx, node, time, sizeMul)
     }
 
     // Labels (hide when zoomed out below threshold)

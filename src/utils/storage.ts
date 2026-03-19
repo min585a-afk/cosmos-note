@@ -25,7 +25,13 @@ export function loadFromStorage(): { nodes: GraphNode[]; edges: GraphEdge[]; rec
     if (!raw) return null
     const data: SavedData = JSON.parse(raw)
     if (!data.nodes || !data.edges) return null
-    return { nodes: data.nodes, edges: data.edges, recentlyDeleted: data.recentlyDeleted, calendarEvents: data.calendarEvents }
+    // Migrate nodes: add size field if missing
+    const migratedNodes = data.nodes.map(n => ({
+      ...n,
+      size: n.size ?? (n.radius >= 14 ? 3 : 2) as 1 | 2 | 3 | 4 | 5,
+      statuses: n.statuses ?? [],
+    }))
+    return { nodes: migratedNodes, edges: data.edges, recentlyDeleted: data.recentlyDeleted, calendarEvents: data.calendarEvents }
   } catch {
     return null
   }

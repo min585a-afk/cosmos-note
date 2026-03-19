@@ -4,8 +4,18 @@ import { worldToScreen } from '../canvas/viewport'
 import { generateBranches } from '../utils/generateBranches'
 import { findRelatedNodes, suggestTags } from '../utils/autoLink'
 import { generateId } from '../state/graphReducer'
-import type { NodeType } from '../types/graph'
+import type { NodeType, NodeSize, NodeStatus } from '../types/graph'
 import { NODE_COLORS, EMPTY_NODE_COLOR } from '../types/graph'
+
+const ICON_OPTIONS = ['🎯', '📚', '💡', '🔥', '⚡', '🎨', '🏠', '💼', '🎮', '🌟', '❤️', '🔑', '📌', '🧩', '🎵', '✈️']
+const COLOR_OPTIONS = [null, '#ff2d55', '#ff9500', '#ffcc00', '#00ff87', '#00e5ff', '#bf5af2', '#ff6b9d', '#ffffff']
+const STATUS_OPTIONS: { key: NodeStatus; emoji: string; label: string }[] = [
+  { key: 'good', emoji: '👍', label: '좋음' },
+  { key: 'bad', emoji: '👎', label: '나쁨' },
+  { key: 'question', emoji: '❓', label: '질문' },
+  { key: 'heart', emoji: '❤️', label: '좋아요' },
+  { key: 'star', emoji: '⭐', label: '중요' },
+]
 
 const NODE_TYPE_LABELS: Record<NodeType, string> = {
   work: '업무',
@@ -290,6 +300,76 @@ export function NodeTooltip({
       {showRelated && relatedNodes.length === 0 && (
         <div className="node-tooltip__no-links">연관 노트가 없습니다.</div>
       )}
+
+      {/* Customization: Size / Icon / Color */}
+      <div className="node-tooltip__customize">
+        <div className="node-tooltip__custom-row">
+          <span className="node-tooltip__custom-label">크기</span>
+          <div className="node-tooltip__size-options">
+            {([1, 2, 3, 4, 5] as NodeSize[]).map(s => (
+              <button
+                key={s}
+                className={`node-tooltip__size-btn ${node.size === s ? 'node-tooltip__size-btn--active' : ''}`}
+                onClick={() => dispatch({ type: 'UPDATE_NODE', nodeId: node.id, updates: { size: s } })}
+                style={{ width: 6 + s * 5, height: 6 + s * 5 }}
+                title={`크기 ${s}`}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="node-tooltip__custom-row">
+          <span className="node-tooltip__custom-label">아이콘</span>
+          <div className="node-tooltip__icon-grid">
+            {ICON_OPTIONS.map(emoji => (
+              <button
+                key={emoji}
+                className={`node-tooltip__icon-btn ${node.icon === emoji ? 'node-tooltip__icon-btn--active' : ''}`}
+                onClick={() => dispatch({ type: 'UPDATE_NODE', nodeId: node.id, updates: { icon: node.icon === emoji ? undefined : emoji } })}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="node-tooltip__custom-row">
+          <span className="node-tooltip__custom-label">색상</span>
+          <div className="node-tooltip__color-grid">
+            {COLOR_OPTIONS.map((c, i) => (
+              <button
+                key={i}
+                className={`node-tooltip__color-btn ${(c === null ? !node.customColor : node.customColor === c) ? 'node-tooltip__color-btn--active' : ''}`}
+                onClick={() => dispatch({ type: 'UPDATE_NODE', nodeId: node.id, updates: { customColor: c ?? undefined } })}
+                style={{ background: c ?? NODE_COLORS[node.type] }}
+                title={c === null ? '자동' : c}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="node-tooltip__custom-row">
+          <span className="node-tooltip__custom-label">상태</span>
+          <div className="node-tooltip__status-options">
+            {STATUS_OPTIONS.map(s => {
+              const isActive = node.statuses?.includes(s.key)
+              return (
+                <button
+                  key={s.key}
+                  className={`node-tooltip__status-btn ${isActive ? 'node-tooltip__status-btn--active' : ''}`}
+                  onClick={() => {
+                    const current = node.statuses ?? []
+                    const next = isActive
+                      ? current.filter(x => x !== s.key)
+                      : [...current, s.key]
+                    dispatch({ type: 'UPDATE_NODE', nodeId: node.id, updates: { statuses: next } })
+                  }}
+                  title={s.label}
+                >
+                  {s.emoji}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </div>
 
       <div className="node-tooltip__actions">
         <button
