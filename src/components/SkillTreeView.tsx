@@ -161,6 +161,7 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
   const [viewBox, setViewBox] = useState({ x: 0, y: 0 })
   const [panning, setPanning] = useState<{ startX: number; startY: number; startVbX: number; startVbY: number } | null>(null)
   const [autoConnectPreview, setAutoConnectPreview] = useState<{ from: string; to: string } | null>(null)
+  const [zoom, setZoom] = useState(1)
 
   if (!tree) return null
 
@@ -174,7 +175,7 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
   const getSvgPos = (e: React.MouseEvent) => {
     const rect = svgRef.current?.getBoundingClientRect()
     if (!rect) return { x: 0, y: 0 }
-    return { x: e.clientX - rect.left + viewBox.x, y: e.clientY - rect.top + viewBox.y }
+    return { x: (e.clientX - rect.left) / zoom + viewBox.x, y: (e.clientY - rect.top) / zoom + viewBox.y }
   }
 
   const handleNodePointerDown = (e: React.MouseEvent, nodeId: string) => {
@@ -282,12 +283,46 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
     dispatch({ type: 'UPDATE_FLOW_NODE', treeId, nodeId, updates: { status: next } })
   }
 
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault()
+    const rect = svgRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const delta = e.deltaY > 0 ? 0.9 : 1.1
+    const newZoom = Math.min(3, Math.max(0.2, zoom * delta))
+    // Zoom toward cursor position
+    const cx = (e.clientX - rect.left) / zoom + viewBox.x
+    const cy = (e.clientY - rect.top) / zoom + viewBox.y
+    const newVbX = cx - (e.clientX - rect.left) / newZoom
+    const newVbY = cy - (e.clientY - rect.top) / newZoom
+    setZoom(newZoom)
+    setViewBox({ x: newVbX, y: newVbY })
+  }, [zoom, viewBox])
+
+  // Determine which nodes are "connected" to the first node (chain activation)
+  const connectedSet = useMemo(() => {
+    if (nodes.length === 0) return new Set<string>()
+    const firstId = nodes[0].id
+    const visited = new Set<string>([firstId])
+    const queue = [firstId]
+    while (queue.length > 0) {
+      const cur = queue.shift()!
+      for (const e of edges) {
+        const other = e.source === cur ? e.target : e.target === cur ? e.source : null
+        if (other && !visited.has(other)) {
+          visited.add(other)
+          queue.push(other)
+        }
+      }
+    }
+    return visited
+  }, [nodes, edges])
+
   const selectedNode = nodes.find(n => n.id === state.selectedNodeId)
   const allDone = nodes.length > 0 && nodes.every(n => n.status === 'done')
 
   const rect = svgRef.current?.getBoundingClientRect()
-  const svgW = rect?.width || 800
-  const svgH = rect?.height || 500
+  const svgW = (rect?.width || 800) / zoom
+  const svgH = (rect?.height || 500) / zoom
 
   return (
     <div className="skill-graph">
@@ -304,36 +339,21 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
         onMouseMove={handlePointerMove}
         onMouseUp={handlePointerUp}
         onDoubleClick={handleDoubleClick}
+        onWheel={handleWheel}
       >
-        {/* Edges */}
+        {/* Edges — plain lines, no arrows */}
         {edges.map(edge => {
           const src = nodes.find(n => n.id === edge.source)
           const tgt = nodes.find(n => n.id === edge.target)
           if (!src || !tgt) return null
           const sx = src.x || 0, sy = src.y || 0
           const tx = tgt.x || 0, ty = tgt.y || 0
-          const bothDone = src.status === 'done' && tgt.status === 'done'
+          const bothConnected = connectedSet.has(edge.source) && connectedSet.has(edge.target)
           return (
-            <g key={edge.id}>
-              <line x1={sx} y1={sy} x2={tx} y2={ty}
-                stroke={bothDone ? '#00ff87' : 'rgba(167,139,250,0.4)'}
-                strokeWidth={bothDone ? 2 : 1.5}
-                strokeDasharray={bothDone ? undefined : '6 4'}
-              />
-              {/* Arrow */}
-              {(() => {
-                const angle = Math.atan2(ty - sy, tx - sx)
-                const tgtR = getNodeR(edge.target)
-                const ax = tx - Math.cos(angle) * (tgtR + 4)
-                const ay = ty - Math.sin(angle) * (tgtR + 4)
-                return (
-                  <polygon
-                    points={`${ax},${ay} ${ax - 8 * Math.cos(angle - 0.4)},${ay - 8 * Math.sin(angle - 0.4)} ${ax - 8 * Math.cos(angle + 0.4)},${ay - 8 * Math.sin(angle + 0.4)}`}
-                    fill={bothDone ? '#00ff87' : 'rgba(167,139,250,0.5)'}
-                  />
-                )
-              })()}
-            </g>
+            <line key={edge.id} x1={sx} y1={sy} x2={tx} y2={ty}
+              stroke={bothConnected ? 'rgba(0,255,135,0.5)' : 'rgba(167,139,250,0.3)'}
+              strokeWidth={bothConnected ? 2 : 1.5}
+            />
           )
         })}
 
@@ -366,6 +386,7 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
           const R = getNodeR(node.id)
           const isFirst = nodes.length > 0 && nodes[0].id === node.id
           const isAutoTarget = autoConnectPreview?.to === node.id
+          const isConnected = connectedSet.has(node.id)
           return (
             <g key={node.id} className="skill-graph-node"
               onMouseDown={e => handleNodePointerDown(e, node.id)}
@@ -378,24 +399,24 @@ function SkillNodeGraph({ treeId }: { treeId: string }) {
 
               {/* Glow */}
               {isSelected && <polygon points={hexPath(nx, ny, R + 6)} fill="none" stroke="var(--accent)" strokeWidth={2} opacity={0.4} />}
-              {isDone && <polygon points={hexPath(nx, ny, R + 4)} fill="none" stroke="#00ff87" strokeWidth={1} opacity={0.3} />}
+              {isConnected && !isFirst && <polygon points={hexPath(nx, ny, R + 4)} fill="none" stroke="#00ff87" strokeWidth={1} opacity={0.25} />}
 
               {/* Hex body */}
               <polygon points={hexPath(nx, ny, R)}
-                fill={isDone ? 'rgba(0,255,135,0.1)' : isFirst ? 'rgba(30,20,60,0.9)' : 'rgba(12,14,24,0.9)'}
-                stroke={isDone ? '#00ff87' : isSelected ? 'var(--accent)' : isFirst ? 'rgba(167,139,250,0.6)' : 'rgba(167,139,250,0.3)'}
-                strokeWidth={isDone ? 2 : isFirst ? 2 : 1.5}
+                fill={isFirst ? 'rgba(0,255,135,0.12)' : isConnected ? 'rgba(0,255,135,0.06)' : 'rgba(12,14,24,0.9)'}
+                stroke={isFirst ? '#00ff87' : isSelected ? 'var(--accent)' : isConnected ? 'rgba(0,255,135,0.5)' : 'rgba(167,139,250,0.3)'}
+                strokeWidth={isFirst ? 2.5 : isConnected ? 1.5 : 1}
               />
 
               {/* Icon */}
               <text x={nx} y={ny + 1} textAnchor="middle" dominantBaseline="middle"
-                fontSize={isFirst ? 18 : (isDone ? 14 : 11)} fill={isDone ? '#00ff87' : 'rgba(167,139,250,0.8)'}>
-                {isFirst ? '★' : isDone ? '✦' : '◇'}
+                fontSize={isFirst ? 18 : 11} fill={isFirst ? '#00ff87' : isConnected ? 'rgba(0,255,135,0.7)' : 'rgba(167,139,250,0.6)'}>
+                {isFirst ? '★' : isConnected ? '✦' : '◇'}
               </text>
 
               {/* Label */}
               <text x={nx} y={ny + R + 14} textAnchor="middle"
-                fill={isDone ? '#00ff87' : '#c0c0e0'} fontSize={isFirst ? 13 : 11} fontWeight={isFirst ? 700 : 500}
+                fill={isFirst ? '#00ff87' : isConnected ? 'rgba(0,255,135,0.8)' : '#c0c0e0'} fontSize={isFirst ? 13 : 11} fontWeight={isFirst ? 700 : 500}
                 fontFamily="'Pretendard Variable', system-ui, sans-serif">
                 {node.label.length > 10 ? node.label.slice(0, 10) + '..' : node.label}
               </text>
