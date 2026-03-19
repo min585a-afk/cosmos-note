@@ -3,7 +3,7 @@ import type { GraphNode, GraphEdge } from '../types/graph'
 const SPRING_STRENGTH = 0.08
 const SPRING_LENGTH = 70
 const REPULSION_SAME_GROUP = 500    // Within same group — keeps nodes readable
-const REPULSION_DIFF_GROUP = 2000   // Between different groups — strong push to prevent overlap
+const REPULSION_DIFF_GROUP = 500    // Between different groups — push to prevent overlap
 const EDGE_REPULSION = 800          // Edges push away non-connected nodes
 const EDGE_REPULSION_DIST = 80      // Max distance for edge repulsion
 const GLOBAL_CENTER = 0.003         // Pull ALL nodes toward (0,0) — weaker to allow separation
