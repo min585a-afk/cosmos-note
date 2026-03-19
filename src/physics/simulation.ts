@@ -3,11 +3,13 @@ import type { GraphNode, GraphEdge } from '../types/graph'
 const SPRING_STRENGTH = 0.08
 const SPRING_LENGTH = 70
 const REPULSION_SAME_GROUP = 500    // Within same group — keeps nodes readable
-const REPULSION_DIFF_GROUP = 500    // Between different groups — push to prevent overlap
+const REPULSION_DIFF_GROUP = 300    // Between different groups — individual nodes
 const EDGE_REPULSION = 800          // Edges push away non-connected nodes
 const EDGE_REPULSION_DIST = 80      // Max distance for edge repulsion
-const GLOBAL_CENTER = 0.003         // Pull ALL nodes toward (0,0) — weaker to allow separation
+const GLOBAL_CENTER = 0.002         // Pull ALL nodes toward (0,0) — gentle
 const GROUP_COHESION = 0.025        // Pull within same group toward group center
+const GROUP_REPULSION = 8000        // Centroid-level repulsion between different groups
+const GROUP_MIN_DIST = 120          // Minimum distance between group centroids
 const DAMPING = 0.8
 const MIN_DIST = 25
 
@@ -135,7 +137,7 @@ export function tick(nodes: GraphNode[], edges: GraphEdge[], alpha: number): voi
     }
   }
 
-  // 4. Group cohesion — same group nodes pull toward their shared centroid — same group nodes pull toward their shared centroid
+  // 4. Group cohesion — same group nodes pull toward their shared centroid
   const centroids = new Map<number, { cx: number; cy: number; count: number }>()
   for (const node of nodes) {
     const g = groups.get(node.id)!
@@ -153,13 +155,49 @@ export function tick(nodes: GraphNode[], edges: GraphEdge[], alpha: number): voi
     node.vy -= (node.y - gcy) * GROUP_COHESION * alpha
   }
 
-  // 5. Global center gravity — pulls everything toward (0,0)
+  // 5. Group-centroid repulsion — push entire groups apart so they don't overlap
+  const groupIds = [...centroids.keys()]
+  for (let i = 0; i < groupIds.length; i++) {
+    for (let j = i + 1; j < groupIds.length; j++) {
+      const ga = centroids.get(groupIds[i])!
+      const gb = centroids.get(groupIds[j])!
+      const cax = ga.cx / ga.count, cay = ga.cy / ga.count
+      const cbx = gb.cx / gb.count, cby = gb.cy / gb.count
+
+      let dx = cbx - cax
+      let dy = cby - cay
+      let dist = Math.sqrt(dx * dx + dy * dy)
+      if (dist < GROUP_MIN_DIST) dist = GROUP_MIN_DIST
+
+      // Strong inverse-distance repulsion between centroids
+      const force = (GROUP_REPULSION * alpha) / (dist * dist)
+      const fx = (dx / dist) * force
+      const fy = (dy / dist) * force
+
+      // Distribute centroid force equally to all nodes in each group
+      const forcePerA = 1 / ga.count
+      const forcePerB = 1 / gb.count
+
+      for (const node of nodes) {
+        const g = groups.get(node.id)!
+        if (g === groupIds[i]) {
+          node.vx -= fx * forcePerA
+          node.vy -= fy * forcePerA
+        } else if (g === groupIds[j]) {
+          node.vx += fx * forcePerB
+          node.vy += fy * forcePerB
+        }
+      }
+    }
+  }
+
+  // 6. Global center gravity — pulls everything toward (0,0)
   for (const node of nodes) {
     node.vx -= node.x * GLOBAL_CENTER * alpha
     node.vy -= node.y * GLOBAL_CENTER * alpha
   }
 
-  // 6. Apply damping and update
+  // 7. Apply damping and update
   for (const node of nodes) {
     node.vx *= DAMPING
     node.vy *= DAMPING
