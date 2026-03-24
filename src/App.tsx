@@ -1,6 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import { GraphProvider, useGraphDispatch, useGraphState } from './state/GraphContext'
-import { SkillTreeProvider } from './state/SkillTreeContext'
 import { ThemeProvider, useTheme } from './state/ThemeContext'
 import { CosmosBg } from './components/CosmosBg'
 import { Sidebar } from './components/Sidebar'
@@ -15,12 +14,9 @@ import { HoverPreview } from './components/HoverPreview'
 import { GraphSettingsPanel, defaultSettings } from './components/GraphSettingsPanel'
 import type { GraphSettings } from './components/GraphSettingsPanel'
 import { NoteView } from './components/NoteView'
-import { SkillTreeView } from './components/SkillTreeView'
-import { CalendarView } from './components/CalendarView'
-import { QuestPage } from './components/QuestPage'
 import './App.css'
 
-export type ViewMode = 'graph' | 'notes' | 'skilltree' | 'analysis' | 'calendar' | 'quests'
+export type ViewMode = 'graph' | 'notes'
 
 // ===== Login / Loading Screen =====
 function LoginScreen({ onLogin }: { onLogin: () => void }) {
@@ -180,7 +176,7 @@ function AppContent() {
     <div className="app">
       {screensaver && <Screensaver onDismiss={() => setScreensaver(false)} />}
       {theme === 'cosmos' && <CosmosBg />}
-      <Sidebar view={view} onViewChange={setView} onScreensaver={() => setScreensaver(true)} />
+      <Sidebar view={view} onViewChange={setView} />
       <main className="main" ref={mainRef}>
         <Header onReheat={handleReheat} onToggleSettings={() => setShowSettings(p => !p)} />
         {view === 'graph' ? (
@@ -203,16 +199,8 @@ function AppContent() {
               />
             )}
           </div>
-        ) : view === 'notes' ? (
-          <NoteView onSwitchToGraph={handleSwitchToGraph} />
-        ) : view === 'calendar' ? (
-          <CalendarView />
-        ) : view === 'quests' ? (
-          <QuestPage />
-        ) : view === 'analysis' ? (
-          <SkillTreeView forceTab="analysis" />
         ) : (
-          <SkillTreeView forceTab="skill" />
+          <NoteView onSwitchToGraph={handleSwitchToGraph} />
         )}
         <StatusBar />
       </main>
@@ -234,9 +222,7 @@ function App() {
   return (
     <ThemeProvider>
       <GraphProvider>
-        <SkillTreeProvider>
-          <AppContent />
-        </SkillTreeProvider>
+        <AppContent />
       </GraphProvider>
     </ThemeProvider>
   )

@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useGraphState, useGraphDispatch } from '../state/GraphContext'
 import { worldToScreen } from '../canvas/viewport'
-import { generateBranches } from '../utils/generateBranches'
 import { findRelatedNodes, suggestTags } from '../utils/autoLink'
 import { generateId } from '../state/graphReducer'
 import type { NodeType, NodeSize, NodeStatus } from '../types/graph'
@@ -107,17 +106,6 @@ export function NodeTooltip({
     const idx = types.indexOf(node.type)
     const next = types[(idx + 1) % types.length]
     dispatch({ type: 'UPDATE_NODE', nodeId: node.id, updates: { type: next } })
-  }
-
-  const handleGenerateBranches = () => {
-    const { nodes: newNodes, edges: newEdges } = generateBranches(node.label, node.x, node.y)
-    const branches = newNodes.slice(1)
-    const rootEdges = newEdges
-      .filter(e => e.source === newNodes[0].id)
-      .map(e => ({ ...e, source: node.id }))
-
-    dispatch({ type: 'BATCH_ADD', nodes: branches, edges: rootEdges })
-    onReheat()
   }
 
   const handleConnectRelated = (targetId: string) => {

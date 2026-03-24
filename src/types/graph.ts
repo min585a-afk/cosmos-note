@@ -64,11 +64,14 @@ export interface DeletedNode {
   deletedAt: number
 }
 
-export interface CalendarEvent {
+export interface FolderItem {
   id: string
-  title: string
-  date: string // YYYY-MM-DD
-  done: boolean
+  name: string
+  parentId: string | null  // null = root
+  type: 'folder' | 'note'
+  nodeId?: string           // note인 경우 GraphNode.id 참조
+  createdAt: number
+  isOpen?: boolean          // folder 펼침 상태
 }
 
 export interface GraphState {
@@ -81,7 +84,8 @@ export interface GraphState {
   simulationAlpha: number
   searchQuery: string
   recentlyDeleted: DeletedNode[]
-  calendarEvents: CalendarEvent[]
+  folders: FolderItem[]
+  activeFolderId: string | null
 }
 
 export type GraphAction =
@@ -103,10 +107,13 @@ export type GraphAction =
   | { type: 'SET_SEARCH'; query: string }
   | { type: 'RESTORE_NODE'; deletedIndex: number }
   | { type: 'CLEAR_DELETED' }
-  | { type: 'ADD_CALENDAR_EVENT'; event: CalendarEvent }
-  | { type: 'TOGGLE_CALENDAR_EVENT'; eventId: string }
-  | { type: 'REMOVE_CALENDAR_EVENT'; eventId: string }
   | { type: 'RELINK_ALL' }
+  | { type: 'ADD_FOLDER'; folder: FolderItem }
+  | { type: 'REMOVE_FOLDER'; folderId: string }
+  | { type: 'RENAME_FOLDER'; folderId: string; name: string }
+  | { type: 'MOVE_ITEM'; itemId: string; newParentId: string | null }
+  | { type: 'TOGGLE_FOLDER'; folderId: string }
+  | { type: 'SET_ACTIVE_FOLDER'; folderId: string | null }
 
 export const NODE_COLORS: Record<NodeType, string> = {
   work: '#bf5af2',

@@ -1,4 +1,4 @@
-import type { GraphNode, GraphEdge, DeletedNode, CalendarEvent } from '../types/graph'
+import type { GraphNode, GraphEdge, DeletedNode, FolderItem } from '../types/graph'
 
 const STORAGE_KEY = 'cosmos-note-data'
 
@@ -6,20 +6,20 @@ interface SavedData {
   nodes: GraphNode[]
   edges: GraphEdge[]
   recentlyDeleted?: DeletedNode[]
-  calendarEvents?: CalendarEvent[]
+  folders?: FolderItem[]
   version: number
 }
 
-export function saveToStorage(nodes: GraphNode[], edges: GraphEdge[], recentlyDeleted?: DeletedNode[], calendarEvents?: CalendarEvent[]) {
+export function saveToStorage(nodes: GraphNode[], edges: GraphEdge[], recentlyDeleted?: DeletedNode[], folders?: FolderItem[]) {
   try {
-    const data: SavedData = { nodes, edges, recentlyDeleted, calendarEvents, version: 1 }
+    const data: SavedData = { nodes, edges, recentlyDeleted, folders, version: 1 }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
   } catch {
     // localStorage full or unavailable
   }
 }
 
-export function loadFromStorage(): { nodes: GraphNode[]; edges: GraphEdge[]; recentlyDeleted?: DeletedNode[]; calendarEvents?: CalendarEvent[] } | null {
+export function loadFromStorage(): { nodes: GraphNode[]; edges: GraphEdge[]; recentlyDeleted?: DeletedNode[]; folders?: FolderItem[] } | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
@@ -31,7 +31,7 @@ export function loadFromStorage(): { nodes: GraphNode[]; edges: GraphEdge[]; rec
       size: n.size ?? (n.radius >= 14 ? 3 : 2) as 1 | 2 | 3 | 4 | 5,
       statuses: n.statuses ?? [],
     }))
-    return { nodes: migratedNodes, edges: data.edges, recentlyDeleted: data.recentlyDeleted, calendarEvents: data.calendarEvents }
+    return { nodes: migratedNodes, edges: data.edges, recentlyDeleted: data.recentlyDeleted, folders: data.folders }
   } catch {
     return null
   }

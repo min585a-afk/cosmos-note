@@ -2,7 +2,7 @@ import { useCallback, useRef } from 'react'
 import { useGraphState, useGraphDispatch } from '../state/GraphContext'
 import { hitTestNode } from '../canvas/hitTest'
 import { screenToWorld } from '../canvas/viewport'
-import { createNode, generateId } from '../state/graphReducer'
+import { generateId } from '../state/graphReducer'
 import type { GraphNode, Viewport } from '../types/graph'
 
 export function useCanvasInteraction(

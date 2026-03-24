@@ -64,7 +64,8 @@ export const initialState: GraphState = {
   simulationAlpha: 1.0,
   searchQuery: '',
   recentlyDeleted: [],
-  calendarEvents: [],
+  folders: [],
+  activeFolderId: null,
 }
 
 export function graphReducer(state: GraphState, action: GraphAction): GraphState {
@@ -216,23 +217,6 @@ export function graphReducer(state: GraphState, action: GraphAction): GraphState
     case 'CLEAR_DELETED':
       return { ...state, recentlyDeleted: [] }
 
-    case 'ADD_CALENDAR_EVENT':
-      return { ...state, calendarEvents: [...state.calendarEvents, action.event] }
-
-    case 'TOGGLE_CALENDAR_EVENT':
-      return {
-        ...state,
-        calendarEvents: state.calendarEvents.map(ev =>
-          ev.id === action.eventId ? { ...ev, done: !ev.done } : ev
-        ),
-      }
-
-    case 'REMOVE_CALENDAR_EVENT':
-      return {
-        ...state,
-        calendarEvents: state.calendarEvents.filter(ev => ev.id !== action.eventId),
-      }
-
     case 'RELINK_ALL': {
       // Re-run auto-linking for all nodes to find missed connections
       let newEdges = [...state.edges]
@@ -243,6 +227,53 @@ export function graphReducer(state: GraphState, action: GraphAction): GraphState
       }
       return { ...state, edges: newEdges }
     }
+
+    case 'ADD_FOLDER':
+      return { ...state, folders: [...state.folders, action.folder] }
+
+    case 'REMOVE_FOLDER': {
+      // Remove folder and all children recursively
+      const toRemove = new Set<string>()
+      const collectChildren = (id: string) => {
+        toRemove.add(id)
+        for (const f of state.folders) {
+          if (f.parentId === id) collectChildren(f.id)
+        }
+      }
+      collectChildren(action.folderId)
+      return {
+        ...state,
+        folders: state.folders.filter(f => !toRemove.has(f.id)),
+        activeFolderId: toRemove.has(state.activeFolderId ?? '') ? null : state.activeFolderId,
+      }
+    }
+
+    case 'RENAME_FOLDER':
+      return {
+        ...state,
+        folders: state.folders.map(f =>
+          f.id === action.folderId ? { ...f, name: action.name } : f
+        ),
+      }
+
+    case 'MOVE_ITEM':
+      return {
+        ...state,
+        folders: state.folders.map(f =>
+          f.id === action.itemId ? { ...f, parentId: action.newParentId } : f
+        ),
+      }
+
+    case 'TOGGLE_FOLDER':
+      return {
+        ...state,
+        folders: state.folders.map(f =>
+          f.id === action.folderId ? { ...f, isOpen: !f.isOpen } : f
+        ),
+      }
+
+    case 'SET_ACTIVE_FOLDER':
+      return { ...state, activeFolderId: action.folderId }
 
     default:
       return state

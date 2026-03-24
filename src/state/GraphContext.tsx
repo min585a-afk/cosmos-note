@@ -14,7 +14,7 @@ function getInitialState(): GraphState {
       nodes: saved.nodes,
       edges: saved.edges,
       recentlyDeleted: saved.recentlyDeleted || [],
-      calendarEvents: saved.calendarEvents || [],
+      folders: saved.folders || [],
     }
   }
   return initialState
@@ -28,9 +28,9 @@ export function GraphProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     clearTimeout(saveTimerRef.current)
     saveTimerRef.current = window.setTimeout(() => {
-      saveToStorage(state.nodes, state.edges, state.recentlyDeleted, state.calendarEvents)
+      saveToStorage(state.nodes, state.edges, state.recentlyDeleted, state.folders)
     }, 500)
-  }, [state.nodes, state.edges, state.recentlyDeleted, state.calendarEvents])
+  }, [state.nodes, state.edges, state.recentlyDeleted, state.folders])
 
   return (
     <StateCtx.Provider value={state}>
