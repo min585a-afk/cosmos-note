@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useMemo } from 'react'
 import { useGraphState, useGraphDispatch } from '../state/GraphContext'
 import { createNode, generateId } from '../state/graphReducer'
-import type { NodeType, GraphNode } from '../types/graph'
+import type { NodeType, GraphNode, SkillStep } from '../types/graph'
 import { NODE_COLORS } from '../types/graph'
 
 const NODE_TYPE_LABELS: Record<NodeType, string> = {
@@ -9,6 +9,7 @@ const NODE_TYPE_LABELS: Record<NodeType, string> = {
   personal: '개인',
   task: '할일',
   idea: '아이디어',
+  skill: '스킬',
 }
 
 // Parse [[link]] syntax
@@ -233,7 +234,7 @@ export function NoteView({ onSwitchToGraph }: { onSwitchToGraph: (nodeId: string
         {/* Toolbar */}
         <div className="note-editor__toolbar">
           <div className="note-editor__types">
-            {(['idea', 'work', 'task', 'personal'] as const).map(t => (
+            {(['idea', 'work', 'task', 'personal', 'skill'] as const).map(t => (
               <button
                 key={t}
                 className={`note-editor__type-btn ${activeNote.type === t ? 'note-editor__type-btn--active' : ''}`}
@@ -338,6 +339,11 @@ export function NoteView({ onSwitchToGraph }: { onSwitchToGraph: (nodeId: string
           )}
         </div>
 
+        {/* Skill Editor */}
+        {activeNote.type === 'skill' && (
+          <SkillEditor node={activeNote} />
+        )}
+
         {/* Backlinks / Connected notes */}
         {(connectedNotes.length > 0 || backlinks.length > 0) && (
           <div className="note-editor__links">
@@ -382,6 +388,157 @@ export function NoteView({ onSwitchToGraph }: { onSwitchToGraph: (nodeId: string
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// ===== Skill Editor =====
+function SkillEditor({ node }: { node: GraphNode }) {
+  const dispatch = useGraphDispatch()
+  const [newStepLabel, setNewStepLabel] = useState('')
+
+  const steps = node.skillSteps || []
+  const isRunning = node.skillRunning
+  const currentStep = node.skillCurrentStep ?? -1
+  const allDone = steps.length > 0 && steps.every(s => s.status === 'done')
+
+  const handleAddStep = () => {
+    const label = newStepLabel.trim()
+    if (!label) return
+    const step: SkillStep = {
+      id: generateId(),
+      order: steps.length + 1,
+      label,
+      description: '',
+      status: 'pending',
+    }
+    dispatch({ type: 'UPDATE_SKILL_STEPS', nodeId: node.id, steps: [...steps, step] })
+    setNewStepLabel('')
+  }
+
+  const handleRemoveStep = (index: number) => {
+    const newSteps = steps.filter((_, i) => i !== index).map((s, i) => ({ ...s, order: i + 1 }))
+    dispatch({ type: 'UPDATE_SKILL_STEPS', nodeId: node.id, steps: newSteps })
+  }
+
+  const handleMoveStep = (index: number, dir: -1 | 1) => {
+    const target = index + dir
+    if (target < 0 || target >= steps.length) return
+    const newSteps = [...steps]
+    const tmp = newSteps[index]
+    newSteps[index] = newSteps[target]
+    newSteps[target] = tmp
+    dispatch({ type: 'UPDATE_SKILL_STEPS', nodeId: node.id, steps: newSteps.map((s, i) => ({ ...s, order: i + 1 })) })
+  }
+
+  const handleRun = () => {
+    if (allDone) {
+      dispatch({ type: 'RESET_SKILL', nodeId: node.id })
+    } else if (isRunning) {
+      dispatch({ type: 'ADVANCE_SKILL', nodeId: node.id })
+    } else {
+      dispatch({ type: 'RUN_SKILL', nodeId: node.id })
+    }
+  }
+
+  const handleStepClick = (index: number) => {
+    if (!isRunning) return
+    if (index === currentStep) {
+      dispatch({ type: 'ADVANCE_SKILL', nodeId: node.id })
+    }
+  }
+
+  const handleIconChange = (icon: string) => {
+    dispatch({ type: 'UPDATE_NODE', nodeId: node.id, updates: { skillIcon: icon } })
+  }
+
+  const SKILL_ICONS = ['⚡', '🔍', '📊', '📝', '🌐', '📁', '🔧', '📨', '🎯', '🚀', '💡', '📋']
+
+  return (
+    <div className="skill-editor">
+      <div className="skill-editor__header">
+        <div className="skill-editor__header-left">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+          </svg>
+          <span>스킬 스텝</span>
+          {steps.length > 0 && (
+            <span className="skill-editor__count">{steps.filter(s => s.status === 'done').length}/{steps.length}</span>
+          )}
+        </div>
+        {steps.length > 0 && (
+          <button
+            className={`skill-editor__run-btn ${isRunning ? 'skill-editor__run-btn--running' : ''} ${allDone ? 'skill-editor__run-btn--done' : ''}`}
+            onClick={handleRun}
+          >
+            {allDone ? '↺ 리셋' : isRunning ? '▶ 다음 단계' : '▷ 실행'}
+          </button>
+        )}
+      </div>
+
+      {/* Icon picker */}
+      <div className="skill-editor__icons">
+        <span className="skill-editor__icons-label">아이콘</span>
+        {SKILL_ICONS.map(ic => (
+          <button
+            key={ic}
+            className={`skill-editor__icon-btn ${node.skillIcon === ic ? 'skill-editor__icon-btn--active' : ''}`}
+            onClick={() => handleIconChange(ic)}
+          >
+            {ic}
+          </button>
+        ))}
+      </div>
+
+      {/* Progress bar */}
+      {steps.length > 0 && (
+        <div className="skill-editor__progress">
+          <div
+            className="skill-editor__progress-fill"
+            style={{ width: `${(steps.filter(s => s.status === 'done').length / steps.length) * 100}%` }}
+          />
+        </div>
+      )}
+
+      {/* Steps list */}
+      <div className="skill-editor__steps">
+        {steps.map((step, i) => (
+          <div
+            key={step.id}
+            className={`skill-step ${step.status === 'done' ? 'skill-step--done' : ''} ${step.status === 'running' ? 'skill-step--running' : ''} ${i === currentStep ? 'skill-step--current' : ''}`}
+            onClick={() => handleStepClick(i)}
+          >
+            <div className="skill-step__number">{step.order}</div>
+            <div className="skill-step__status-icon">
+              {step.status === 'done' ? '✓' : step.status === 'running' ? '●' : '○'}
+            </div>
+            <div className="skill-step__label">{step.label}</div>
+            {!isRunning && (
+              <div className="skill-step__actions">
+                <button onClick={(e) => { e.stopPropagation(); handleMoveStep(i, -1) }} disabled={i === 0}>↑</button>
+                <button onClick={(e) => { e.stopPropagation(); handleMoveStep(i, 1) }} disabled={i === steps.length - 1}>↓</button>
+                <button onClick={(e) => { e.stopPropagation(); handleRemoveStep(i) }}>✕</button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Add step */}
+      {!isRunning && (
+        <div className="skill-editor__add">
+          <input
+            className="skill-editor__add-input"
+            value={newStepLabel}
+            onChange={e => setNewStepLabel(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleAddStep() }}
+            placeholder={`${steps.length + 1}단계 추가...`}
+          />
+          <button className="skill-editor__add-btn" onClick={handleAddStep} disabled={!newStepLabel.trim()}>
+            +
+          </button>
+        </div>
+      )}
     </div>
   )
 }

@@ -45,15 +45,32 @@ export function drawEdge(
   thickness: number = 1.0,
   showArrow: boolean = false
 ) {
-  ctx.beginPath()
-  ctx.moveTo(source.x, source.y)
-  ctx.lineTo(target.x, target.y)
   const isPlanetEdge = source.radius >= 14 || target.radius >= 14
   const light = isLightTheme()
-  if (light) {
-    ctx.strokeStyle = isPlanetEdge ? 'rgba(80, 60, 140, 0.25)' : 'rgba(80, 60, 140, 0.15)'
+  const theme = getTheme()
+
+  // Gradient edge (color fades between source and target)
+  if (theme === 'cosmos') {
+    const [sr, sg, sb] = hexToRgb(source.color)
+    const [tr, tg, tb] = hexToRgb(target.color)
+    const grad = ctx.createLinearGradient(source.x, source.y, target.x, target.y)
+    const alpha = isPlanetEdge ? 0.18 : 0.08
+    grad.addColorStop(0, `rgba(${sr}, ${sg}, ${sb}, ${alpha})`)
+    grad.addColorStop(0.5, `rgba(${Math.floor((sr + tr) / 2)}, ${Math.floor((sg + tg) / 2)}, ${Math.floor((sb + tb) / 2)}, ${alpha * 0.7})`)
+    grad.addColorStop(1, `rgba(${tr}, ${tg}, ${tb}, ${alpha})`)
+    ctx.beginPath()
+    ctx.moveTo(source.x, source.y)
+    ctx.lineTo(target.x, target.y)
+    ctx.strokeStyle = grad
   } else {
-    ctx.strokeStyle = isPlanetEdge ? 'rgba(255, 255, 255, 0.18)' : 'rgba(255, 255, 255, 0.10)'
+    ctx.beginPath()
+    ctx.moveTo(source.x, source.y)
+    ctx.lineTo(target.x, target.y)
+    if (light) {
+      ctx.strokeStyle = isPlanetEdge ? 'rgba(80, 60, 140, 0.25)' : 'rgba(80, 60, 140, 0.15)'
+    } else {
+      ctx.strokeStyle = isPlanetEdge ? 'rgba(255, 255, 255, 0.18)' : 'rgba(255, 255, 255, 0.10)'
+    }
   }
   ctx.lineWidth = (isPlanetEdge ? 1 : 0.6) * thickness
   ctx.stroke()
@@ -107,8 +124,8 @@ function hexToRgb(hex: string): [number, number, number] {
 }
 
 /**
- * Draw a PLANET node (radius >= 14) — simplified
- * Solid circle + soft glow + subtle highlight
+ * Draw a PLANET node (radius >= 14) — refined cosmos style
+ * Multi-layer glow + atmosphere rim + gradient sphere + specular highlight
  */
 function drawPlanet(
   ctx: CanvasRenderingContext2D,
@@ -120,53 +137,122 @@ function drawPlanet(
   sizeMul: number = 1.0
 ) {
   const { x, y, color } = node
-  const rScale = node.radius / 14  // scale relative to default planet radius
+  const isSkill = node.type === 'skill'
+  const rScale = node.radius / 14
   const baseR = (isHovered ? 9 : isSelected ? 8.5 : isSearchMatch ? 8.5 : 7.5) * sizeMul * rScale
   const [cr, cg, cb] = hexToRgb(color)
 
-  // Soft glow
-  const glowR = baseR * 2.5
-  const glow = ctx.createRadialGradient(x, y, baseR * 0.6, x, y, glowR)
-  glow.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, 0.2)`)
+  // Outer nebula glow (very soft, large)
+  const nebulaR = baseR * 4
+  const nebula = ctx.createRadialGradient(x, y, baseR * 0.8, x, y, nebulaR)
+  nebula.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, 0.08)`)
+  nebula.addColorStop(0.5, `rgba(${cr}, ${cg}, ${cb}, 0.03)`)
+  nebula.addColorStop(1, `rgba(${cr}, ${cg}, ${cb}, 0)`)
+  ctx.beginPath()
+  ctx.arc(x, y, nebulaR, 0, TWO_PI)
+  ctx.fillStyle = nebula
+  ctx.fill()
+
+  // Inner glow
+  const glowR = baseR * 2.2
+  const glow = ctx.createRadialGradient(x, y, baseR * 0.5, x, y, glowR)
+  glow.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, 0.25)`)
+  glow.addColorStop(0.6, `rgba(${cr}, ${cg}, ${cb}, 0.08)`)
   glow.addColorStop(1, `rgba(${cr}, ${cg}, ${cb}, 0)`)
   ctx.beginPath()
   ctx.arc(x, y, glowR, 0, TWO_PI)
   ctx.fillStyle = glow
   ctx.fill()
 
-  // Search match ring
-  if (isSearchMatch) {
+  // Search match / selected ring
+  if (isSearchMatch || isSelected) {
     ctx.beginPath()
     ctx.arc(x, y, baseR + 5, 0, TWO_PI)
     ctx.strokeStyle = color
-    ctx.lineWidth = 1.5
-    ctx.globalAlpha = 0.7
+    ctx.lineWidth = isSelected ? 2 : 1.5
+    ctx.globalAlpha = isSelected ? 0.9 : 0.7
     ctx.stroke()
     ctx.globalAlpha = 1
   }
 
-  // Planet body — simple gradient sphere
+  // Atmosphere rim (thin bright ring around planet)
+  const atmR = baseR + 1.5
+  const atm = ctx.createRadialGradient(x, y, baseR * 0.9, x, y, atmR)
+  atm.addColorStop(0, `rgba(${Math.min(255, cr + 80)}, ${Math.min(255, cg + 80)}, ${Math.min(255, cb + 80)}, 0)`)
+  atm.addColorStop(0.7, `rgba(${Math.min(255, cr + 80)}, ${Math.min(255, cg + 80)}, ${Math.min(255, cb + 80)}, 0.15)`)
+  atm.addColorStop(1, `rgba(${Math.min(255, cr + 80)}, ${Math.min(255, cg + 80)}, ${Math.min(255, cb + 80)}, 0)`)
+  ctx.beginPath()
+  ctx.arc(x, y, atmR, 0, TWO_PI)
+  ctx.fillStyle = atm
+  ctx.fill()
+
+  // Planet body — rich gradient sphere
   const surface = ctx.createRadialGradient(
-    x - baseR * 0.25, y - baseR * 0.25, baseR * 0.1,
-    x, y, baseR
+    x - baseR * 0.3, y - baseR * 0.35, baseR * 0.05,
+    x + baseR * 0.1, y + baseR * 0.1, baseR
   )
-  surface.addColorStop(0, `rgba(${Math.min(255, cr + 50)}, ${Math.min(255, cg + 50)}, ${Math.min(255, cb + 50)}, 1)`)
+  surface.addColorStop(0, `rgba(${Math.min(255, cr + 70)}, ${Math.min(255, cg + 70)}, ${Math.min(255, cb + 70)}, 1)`)
+  surface.addColorStop(0.35, `rgba(${Math.min(255, cr + 20)}, ${Math.min(255, cg + 20)}, ${Math.min(255, cb + 20)}, 1)`)
   surface.addColorStop(0.7, color)
-  surface.addColorStop(1, `rgba(${Math.floor(cr * 0.5)}, ${Math.floor(cg * 0.5)}, ${Math.floor(cb * 0.5)}, 1)`)
+  surface.addColorStop(1, `rgba(${Math.floor(cr * 0.35)}, ${Math.floor(cg * 0.35)}, ${Math.floor(cb * 0.35)}, 1)`)
 
   ctx.beginPath()
   ctx.arc(x, y, baseR, 0, TWO_PI)
   ctx.fillStyle = surface
   ctx.fill()
 
-  // Small highlight spot
+  // Subtle surface band (horizontal gradient for depth)
+  ctx.save()
   ctx.beginPath()
-  ctx.arc(x - baseR * 0.3, y - baseR * 0.3, baseR * 0.3, 0, TWO_PI)
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'
+  ctx.arc(x, y, baseR, 0, TWO_PI)
+  ctx.clip()
+  const band = ctx.createLinearGradient(x - baseR, y, x + baseR, y)
+  band.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, 0)`)
+  band.addColorStop(0.3, `rgba(255, 255, 255, 0.04)`)
+  band.addColorStop(0.5, `rgba(255, 255, 255, 0.06)`)
+  band.addColorStop(0.7, `rgba(255, 255, 255, 0.03)`)
+  band.addColorStop(1, `rgba(${cr}, ${cg}, ${cb}, 0)`)
+  ctx.fillStyle = band
+  ctx.fillRect(x - baseR, y - baseR * 0.15, baseR * 2, baseR * 0.3)
+  ctx.restore()
+
+  // Specular highlight (crescent shape)
+  ctx.beginPath()
+  ctx.arc(x - baseR * 0.25, y - baseR * 0.3, baseR * 0.4, 0, TWO_PI)
+  const spec = ctx.createRadialGradient(
+    x - baseR * 0.25, y - baseR * 0.3, 0,
+    x - baseR * 0.25, y - baseR * 0.3, baseR * 0.4
+  )
+  spec.addColorStop(0, 'rgba(255, 255, 255, 0.35)')
+  spec.addColorStop(0.5, 'rgba(255, 255, 255, 0.1)')
+  spec.addColorStop(1, 'rgba(255, 255, 255, 0)')
+  ctx.fillStyle = spec
   ctx.fill()
 
+  // Skill node: orbit ring animation
+  if (isSkill && node.skillSteps?.length) {
+    const orbitR = baseR + 8
+    const progress = node.skillSteps.filter(s => s.status === 'done').length / node.skillSteps.length
+    ctx.beginPath()
+    ctx.arc(x, y, orbitR, -Math.PI / 2, -Math.PI / 2 + TWO_PI * progress)
+    ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, 0.6)`
+    ctx.lineWidth = 2
+    ctx.stroke()
+
+    // Orbit dot
+    if (node.skillRunning) {
+      const angle = -Math.PI / 2 + TWO_PI * progress
+      const dotX = x + Math.cos(angle) * orbitR
+      const dotY = y + Math.sin(angle) * orbitR
+      ctx.beginPath()
+      ctx.arc(dotX, dotY, 2.5, 0, TWO_PI)
+      ctx.fillStyle = '#fff'
+      ctx.fill()
+    }
+  }
+
   // Empty node: dashed ring
-  if (!node.description.trim() && !isHovered && !isSelected) {
+  if (!node.description.trim() && !isHovered && !isSelected && !isSkill) {
     ctx.beginPath()
     ctx.arc(x, y, baseR + 3, 0, TWO_PI)
     ctx.setLineDash([3, 3])
@@ -178,7 +264,7 @@ function drawPlanet(
 }
 
 /**
- * Draw a STAR node (radius < 14) — bright dot with twinkle
+ * Draw a STAR node (radius < 14) — refined bright dot with cross-flare
  */
 function drawStar(
   ctx: CanvasRenderingContext2D,
@@ -192,7 +278,7 @@ function drawStar(
   const { x, y, color } = node
   const [cr, cg, cb] = hexToRgb(color)
 
-  const rScale = node.radius / 10  // scale relative to default star radius
+  const rScale = node.radius / 10
   const baseR = (node.radius >= 10 ? 3 : 2.5) * sizeMul * rScale
   const r = isHovered ? baseR + 1.5 : isSelected ? baseR + 1 : isSearchMatch ? baseR + 1 : baseR
 
@@ -200,35 +286,73 @@ function drawStar(
   const idHash = node.id.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)
   const twinkle = 0.6 + Math.sin(time * 0.002 + idHash * 0.1) * 0.4
 
-  // Soft glow
-  const glowR = r + 6 * twinkle
+  // Outer haze
+  const hazeR = r + 10 * twinkle
+  const haze = ctx.createRadialGradient(x, y, r * 0.2, x, y, hazeR)
+  haze.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, ${(0.12 * twinkle).toFixed(2)})`)
+  haze.addColorStop(1, `rgba(${cr}, ${cg}, ${cb}, 0)`)
+  ctx.beginPath()
+  ctx.arc(x, y, hazeR, 0, TWO_PI)
+  ctx.fillStyle = haze
+  ctx.fill()
+
+  // Inner glow
+  const glowR = r + 5 * twinkle
   const glow = ctx.createRadialGradient(x, y, r * 0.3, x, y, glowR)
-  glow.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, ${(0.35 * twinkle).toFixed(2)})`)
+  glow.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, ${(0.4 * twinkle).toFixed(2)})`)
   glow.addColorStop(1, `rgba(${cr}, ${cg}, ${cb}, 0)`)
   ctx.beginPath()
   ctx.arc(x, y, glowR, 0, TWO_PI)
   ctx.fillStyle = glow
   ctx.fill()
 
-  // Search match ring
-  if (isSearchMatch) {
+  // Cross-flare (4-point star rays)
+  if (twinkle > 0.7 || isHovered) {
+    const flareLen = r * 3 * twinkle
+    const flareAlpha = (twinkle - 0.5) * 0.3
+    ctx.save()
+    ctx.globalAlpha = Math.max(0, flareAlpha)
+    ctx.strokeStyle = `rgba(${Math.min(255, cr + 60)}, ${Math.min(255, cg + 60)}, ${Math.min(255, cb + 60)}, 0.6)`
+    ctx.lineWidth = 0.5
+    // Vertical
+    ctx.beginPath()
+    ctx.moveTo(x, y - flareLen)
+    ctx.lineTo(x, y + flareLen)
+    ctx.stroke()
+    // Horizontal
+    ctx.beginPath()
+    ctx.moveTo(x - flareLen, y)
+    ctx.lineTo(x + flareLen, y)
+    ctx.stroke()
+    ctx.restore()
+  }
+
+  // Search match / selected ring
+  if (isSearchMatch || isSelected) {
     ctx.beginPath()
     ctx.arc(x, y, r + 4, 0, TWO_PI)
     ctx.strokeStyle = color
     ctx.lineWidth = 1.5
-    ctx.globalAlpha = 0.7
+    ctx.globalAlpha = isSelected ? 0.9 : 0.7
     ctx.stroke()
     ctx.globalAlpha = 1
   }
 
-  // Core dot — white center fading to color
+  // Core dot — bright white center to color
   const core = ctx.createRadialGradient(x, y, 0, x, y, r)
   core.addColorStop(0, '#ffffff')
-  core.addColorStop(0.5, color)
-  core.addColorStop(1, `rgba(${cr}, ${cg}, ${cb}, 0.5)`)
+  core.addColorStop(0.3, `rgba(${Math.min(255, cr + 40)}, ${Math.min(255, cg + 40)}, ${Math.min(255, cb + 40)}, 1)`)
+  core.addColorStop(0.7, color)
+  core.addColorStop(1, `rgba(${cr}, ${cg}, ${cb}, 0.4)`)
   ctx.beginPath()
   ctx.arc(x, y, r, 0, TWO_PI)
   ctx.fillStyle = core
+  ctx.fill()
+
+  // Tiny specular dot
+  ctx.beginPath()
+  ctx.arc(x - r * 0.2, y - r * 0.2, r * 0.25, 0, TWO_PI)
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'
   ctx.fill()
 
   // Empty node indicator

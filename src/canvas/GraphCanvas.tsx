@@ -3,6 +3,7 @@ import { useGraphState } from '../state/GraphContext'
 import { useSimulation } from '../hooks/useSimulation'
 import { useCanvasInteraction } from '../hooks/useCanvasInteraction'
 import { drawGrid, drawEdge, drawNode, drawLabel, drawDraftEdge, drawStatusIndicators } from './renderer'
+import { createPenguinState, updatePenguin, drawPenguin } from './penguinSprite'
 import type { GraphSettings } from '../components/GraphSettingsPanel'
 
 export function GraphCanvas({ reheatRef, onOpenNote, settings }: { reheatRef?: MutableRefObject<(() => void) | null>; onOpenNote?: (nodeId: string) => void; settings?: GraphSettings }) {
@@ -10,6 +11,7 @@ export function GraphCanvas({ reheatRef, onOpenNote, settings }: { reheatRef?: M
   const containerRef = useRef<HTMLDivElement>(null)
   const sizeRef = useRef({ w: 0, h: 0 })
   const animRef = useRef(0)
+  const penguinRef = useRef(createPenguinState())
 
   const state = useGraphState()
   const { nodesRef, reheat } = useSimulation()
@@ -156,6 +158,11 @@ export function GraphCanvas({ reheatRef, onOpenNote, settings }: { reheatRef?: M
         drawLabel(ctx, node, node.id === hoveredNodeId, node.id === selectedNodeId, time, searchMatchIds.has(node.id))
       }
     }
+
+    // Penguin mascot walking around the map
+    const penguin = penguinRef.current
+    updatePenguin(penguin, liveNodes, time)
+    drawPenguin(ctx, penguin)
 
     animRef.current = requestAnimationFrame(render)
   }, [nodesRef])

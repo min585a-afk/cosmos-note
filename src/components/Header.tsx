@@ -5,6 +5,7 @@ import type { NodeType } from '../types/graph'
 
 function detectNodeType(text: string): NodeType {
   const lower = text.toLowerCase()
+  if (/스킬|skill|자동화|워크플로우|workflow|매크로|루틴|절차|프로세스|파이프라인/.test(lower)) return 'skill'
   if (/디자인|ui|ux|레이아웃|컬러|폰트|타이포|와이어프레임|프로토타입|목업|figma|sketch|일러스트|그래픽|아이콘|로고|브랜딩|비주얼|css|스타일/.test(lower)) return 'idea'
   if (/회의|미팅|보고|업무|프로젝트|일정|마감|클라이언트|기획|전략|분석|리뷰|발표|제안/.test(lower)) return 'work'
   if (/해야|할일|todo|체크|완료|진행|구현|수정|버그|fix|deploy|배포|테스트|확인/.test(lower)) return 'task'
@@ -81,7 +82,8 @@ export function Header({ onReheat, onToggleSettings }: { onReheat: () => void; o
           />
           {quickInput && (
             <span className="quick-input__type-hint">
-              {detectNodeType(quickInput) === 'task' ? '할일' :
+              {detectNodeType(quickInput) === 'skill' ? '스킬' :
+               detectNodeType(quickInput) === 'task' ? '할일' :
                detectNodeType(quickInput) === 'work' ? '업무' :
                detectNodeType(quickInput) === 'personal' ? '개인' : '아이디어'}
             </span>

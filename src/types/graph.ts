@@ -1,4 +1,4 @@
-export type NodeType = 'work' | 'personal' | 'task' | 'idea'
+export type NodeType = 'work' | 'personal' | 'task' | 'idea' | 'skill'
 export type NodeSize = 1 | 2 | 3 | 4 | 5
 export type NodeStatus = 'good' | 'bad' | 'question' | 'heart' | 'star'
 
@@ -16,6 +16,17 @@ export const SIZE_TO_RADIUS: Record<NodeSize, number> = {
   3: 14,
   4: 20,
   5: 28,
+}
+
+// Skill step definition
+export type SkillStepStatus = 'pending' | 'running' | 'done' | 'skipped'
+
+export interface SkillStep {
+  id: string
+  order: number
+  label: string
+  description: string
+  status: SkillStepStatus
 }
 
 export interface GraphNode {
@@ -37,6 +48,11 @@ export interface GraphNode {
   icon?: string
   customColor?: string
   statuses: NodeStatus[]
+  // Skill node fields
+  skillSteps?: SkillStep[]
+  skillIcon?: string
+  skillRunning?: boolean
+  skillCurrentStep?: number
 }
 
 export interface GraphEdge {
@@ -103,7 +119,7 @@ export type GraphAction =
   | { type: 'SET_ALPHA'; alpha: number }
   | { type: 'BATCH_ADD'; nodes: GraphNode[]; edges: GraphEdge[] }
   | { type: 'UPDATE_NODE_LABEL'; nodeId: string; label: string }
-  | { type: 'UPDATE_NODE'; nodeId: string; updates: Partial<Pick<GraphNode, 'label' | 'description' | 'tags' | 'type' | 'color' | 'size' | 'icon' | 'customColor' | 'statuses'>> }
+  | { type: 'UPDATE_NODE'; nodeId: string; updates: Partial<Pick<GraphNode, 'label' | 'description' | 'tags' | 'type' | 'color' | 'size' | 'icon' | 'customColor' | 'statuses' | 'skillSteps' | 'skillIcon'>> }
   | { type: 'SET_SEARCH'; query: string }
   | { type: 'RESTORE_NODE'; deletedIndex: number }
   | { type: 'CLEAR_DELETED' }
@@ -114,12 +130,18 @@ export type GraphAction =
   | { type: 'MOVE_ITEM'; itemId: string; newParentId: string | null }
   | { type: 'TOGGLE_FOLDER'; folderId: string }
   | { type: 'SET_ACTIVE_FOLDER'; folderId: string | null }
+  | { type: 'UPDATE_SKILL_STEPS'; nodeId: string; steps: SkillStep[] }
+  | { type: 'RUN_SKILL'; nodeId: string }
+  | { type: 'ADVANCE_SKILL'; nodeId: string }
+  | { type: 'RESET_SKILL'; nodeId: string }
+  | { type: 'SET_SKILL_STEP_STATUS'; nodeId: string; stepIndex: number; status: SkillStepStatus }
 
 export const NODE_COLORS: Record<NodeType, string> = {
   work: '#bf5af2',
   personal: '#00e5ff',
   task: '#ff2d55',
   idea: '#00ff87',
+  skill: '#ffb800',
 }
 
 export const EMPTY_NODE_COLOR = '#4a4a5a'

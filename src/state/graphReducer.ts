@@ -275,6 +275,71 @@ export function graphReducer(state: GraphState, action: GraphAction): GraphState
     case 'SET_ACTIVE_FOLDER':
       return { ...state, activeFolderId: action.folderId }
 
+    case 'UPDATE_SKILL_STEPS':
+      return {
+        ...state,
+        nodes: state.nodes.map(n =>
+          n.id === action.nodeId ? { ...n, skillSteps: action.steps } : n
+        ),
+      }
+
+    case 'RUN_SKILL':
+      return {
+        ...state,
+        nodes: state.nodes.map(n => {
+          if (n.id !== action.nodeId || !n.skillSteps?.length) return n
+          const steps = n.skillSteps.map((s, i) => ({
+            ...s,
+            status: i === 0 ? 'running' as const : 'pending' as const,
+          }))
+          return { ...n, skillSteps: steps, skillRunning: true, skillCurrentStep: 0 }
+        }),
+      }
+
+    case 'ADVANCE_SKILL':
+      return {
+        ...state,
+        nodes: state.nodes.map(n => {
+          if (n.id !== action.nodeId || !n.skillSteps?.length || !n.skillRunning) return n
+          const current = n.skillCurrentStep ?? 0
+          const steps = n.skillSteps.map((s, i) => {
+            if (i === current) return { ...s, status: 'done' as const }
+            if (i === current + 1) return { ...s, status: 'running' as const }
+            return s
+          })
+          const nextStep = current + 1
+          const isDone = nextStep >= steps.length
+          return {
+            ...n,
+            skillSteps: steps,
+            skillRunning: !isDone,
+            skillCurrentStep: isDone ? undefined : nextStep,
+          }
+        }),
+      }
+
+    case 'RESET_SKILL':
+      return {
+        ...state,
+        nodes: state.nodes.map(n => {
+          if (n.id !== action.nodeId || !n.skillSteps?.length) return n
+          const steps = n.skillSteps.map(s => ({ ...s, status: 'pending' as const }))
+          return { ...n, skillSteps: steps, skillRunning: false, skillCurrentStep: undefined }
+        }),
+      }
+
+    case 'SET_SKILL_STEP_STATUS':
+      return {
+        ...state,
+        nodes: state.nodes.map(n => {
+          if (n.id !== action.nodeId || !n.skillSteps) return n
+          const steps = n.skillSteps.map((s, i) =>
+            i === action.stepIndex ? { ...s, status: action.status } : s
+          )
+          return { ...n, skillSteps: steps }
+        }),
+      }
+
     default:
       return state
   }

@@ -14,9 +14,12 @@ import { HoverPreview } from './components/HoverPreview'
 import { GraphSettingsPanel, defaultSettings } from './components/GraphSettingsPanel'
 import type { GraphSettings } from './components/GraphSettingsPanel'
 import { NoteView } from './components/NoteView'
+import { CalendarView } from './components/CalendarView'
+import { AnalysisView } from './components/AnalysisView'
+import { SkillTreeView } from './components/SkillTreeView'
 import './App.css'
 
-export type ViewMode = 'graph' | 'notes'
+export type ViewMode = 'graph' | 'notes' | 'calendar' | 'analysis' | 'skilltree'
 
 // ===== Login / Loading Screen =====
 function LoginScreen({ onLogin }: { onLogin: () => void }) {
@@ -199,9 +202,15 @@ function AppContent() {
               />
             )}
           </div>
-        ) : (
+        ) : view === 'notes' ? (
           <NoteView onSwitchToGraph={handleSwitchToGraph} />
-        )}
+        ) : view === 'calendar' ? (
+          <CalendarView onViewChange={setView} />
+        ) : view === 'analysis' ? (
+          <AnalysisView />
+        ) : view === 'skilltree' ? (
+          <SkillTreeView onViewChange={setView} />
+        ) : null}
         <StatusBar />
       </main>
     </div>

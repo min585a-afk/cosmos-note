@@ -5,6 +5,7 @@ import { NODE_COLORS, EMPTY_NODE_COLOR } from '../types/graph'
 import type { FolderItem } from '../types/graph'
 import type { ViewMode } from '../App'
 import { generateId, createNode } from '../state/graphReducer'
+import { SkillPanel } from './SkillPanel'
 
 export function Sidebar({ onViewChange }: { view: ViewMode; onViewChange: (v: ViewMode) => void }) {
   const state = useGraphState()
@@ -268,6 +269,30 @@ export function Sidebar({ onViewChange }: { view: ViewMode; onViewChange: (v: Vi
         </div>
       )}
 
+      {/* View Navigation */}
+      <div className="sidebar__views">
+        <button className="sidebar__view-btn" onClick={() => onViewChange('graph')} title="그래프">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="4" />
+          </svg>
+        </button>
+        <button className="sidebar__view-btn" onClick={() => onViewChange('calendar')} title="캘린더">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+        </button>
+        <button className="sidebar__view-btn" onClick={() => onViewChange('analysis')} title="분석">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
+          </svg>
+        </button>
+        <button className="sidebar__view-btn" onClick={() => onViewChange('skilltree')} title="스킬트리">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+          </svg>
+        </button>
+      </div>
+
       <nav className="sidebar__nav">
         {/* File Explorer */}
         <div className="nav-section">
@@ -406,6 +431,8 @@ export function Sidebar({ onViewChange }: { view: ViewMode; onViewChange: (v: Vi
           </button>
         </div>
       )}
+
+      <SkillPanel onViewChange={onViewChange} />
 
       <div className="sidebar__footer">
         <div className="sidebar__user">

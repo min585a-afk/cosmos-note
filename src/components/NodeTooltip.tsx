@@ -21,6 +21,7 @@ const NODE_TYPE_LABELS: Record<NodeType, string> = {
   personal: '개인',
   task: '할일',
   idea: '아이디어',
+  skill: '스킬',
 }
 
 export function NodeTooltip({

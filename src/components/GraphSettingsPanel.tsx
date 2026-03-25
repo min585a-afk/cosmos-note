@@ -17,7 +17,7 @@ export interface GraphSettings {
 }
 
 export const defaultSettings: GraphSettings = {
-  showTypes: { work: true, personal: true, task: true, idea: true },
+  showTypes: { work: true, personal: true, task: true, idea: true, skill: true },
   filterTags: [],
   showOrphans: true,
   showArrows: false,
@@ -32,6 +32,7 @@ const TYPE_LABELS: Record<NodeType, string> = {
   personal: '개인',
   task: '할일',
   idea: '아이디어',
+  skill: '스킬',
 }
 
 interface Props {
